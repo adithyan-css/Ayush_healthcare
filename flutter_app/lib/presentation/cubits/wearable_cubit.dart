@@ -26,6 +26,17 @@ class WearableCubit extends Cubit<WearableState> {
 
 	final ApiService _api = ApiService.instance;
 
+	Map<String, dynamic> _extractData(dynamic response) {
+		if (response is Map<String, dynamic>) {
+			final dynamic data = response['data'];
+			if (data is Map<String, dynamic>) {
+				return data;
+			}
+			return response;
+		}
+		return <String, dynamic>{};
+	}
+
 	Future<void> checkAndFetch() async {
 		emit(WearableLoading());
 		try {
@@ -52,6 +63,14 @@ class WearableCubit extends Cubit<WearableState> {
 				'is_anomaly': readings.last['hrv_ms'] as double > 70,
 			};
 
+			try {
+				await _api.post('/wearable/hrv-sync', {'readings': readings});
+				final dynamic nadiResp = await _api.get('/wearable/nadi');
+				final Map<String, dynamic> backendDiagnosis = _extractData(nadiResp);
+				emit(WearableLoaded(readings, backendDiagnosis.isNotEmpty ? backendDiagnosis : diagnosis));
+				return;
+			} catch (_) {}
+
 			emit(WearableLoaded(readings, diagnosis));
 		} catch (e) {
 			emit(WearableError('Failed to fetch wearable data: $e'));
@@ -71,7 +90,7 @@ class WearableCubit extends Cubit<WearableState> {
 		final current = state as WearableLoaded;
 		try {
 			final data = await _api.get('/wearable/nadi');
-			emit(WearableLoaded(current.readings, Map<String, dynamic>.from(data as Map)));
+			emit(WearableLoaded(current.readings, _extractData(data)));
 		} catch (e) {
 			emit(WearableError('Failed to load nadi diagnosis: $e'));
 		}

@@ -26,6 +26,13 @@ class ForecastCubit extends Cubit<ForecastState> {
 
 	final ApiService _api = ApiService.instance;
 
+	dynamic _extractData(dynamic response) {
+		if (response is Map<String, dynamic>) {
+			return response['data'] ?? response;
+		}
+		return response;
+	}
+
 	Future<void> loadForecast() async {
 		emit(ForecastLoading());
 		try {
@@ -36,11 +43,16 @@ class ForecastCubit extends Cubit<ForecastState> {
 				_api.get('/forecast/seasonal'),
 			]);
 
+			final dynamic national = _extractData(results[0]);
+			final dynamic regions = _extractData(results[1]);
+			final dynamic population = _extractData(results[2]);
+			final dynamic seasonal = _extractData(results[3]);
+
 			final merged = {
-				'conditions': (results[0] as Map)['conditions'],
-				'region_cards': results[1],
-				'population_risks': results[2],
-				'seasonal': results[3],
+				'conditions': (national as Map)['conditions'],
+				'region_cards': regions,
+				'population_risks': population,
+				'seasonal': seasonal,
 			};
 			await HiveService.saveForecast(Map<String, dynamic>.from(merged));
 			emit(ForecastLoaded(Map<String, dynamic>.from(merged)));
@@ -57,7 +69,8 @@ class ForecastCubit extends Cubit<ForecastState> {
 	Future<void> generateBulletin(String districtId) async {
 		try {
 			final response = await _api.post('/forecast/bulletin', {'district_id': districtId});
-			final b64 = (response['pdf_base64'] ?? '').toString();
+			final dynamic data = _extractData(response);
+			final b64 = ((data is Map ? data['pdf_base64'] : null) ?? '').toString();
 			if (b64.isEmpty) throw Exception('Empty PDF');
 			final bytes = base64Decode(b64);
 			await Printing.sharePdf(bytes: Uint8List.fromList(bytes), filename: 'prakriti_bulletin_$districtId.pdf');

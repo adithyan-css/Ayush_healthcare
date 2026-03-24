@@ -79,6 +79,9 @@ class HiveService {
 			case 'hi':
 			case 'hindi':
 				return 'hi';
+			case 'te':
+			case 'telugu':
+				return 'te';
 			case 'ja':
 			case 'japanese':
 				return 'ja';

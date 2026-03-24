@@ -35,13 +35,16 @@ async def generate(req: RecommendationRequest, request: Request, current_user: U
 			}
 			for h in history
 		]
-		season = ws.get_current_season()
+		if req.history:
+			history_data = req.history[:3]
+
+		season = req.season or ws.get_current_season()
 		free_text = req.free_text
 		if req.variation:
 			suffix = ', please vary the suggestions from previous recommendations'
 			free_text = (free_text or '') + suffix
 
-		language = resolve_language(request, current_user.language)
+		language = req.language or resolve_language(request, current_user.language)
 		ai_response = await recommendation_service.generate_recommendation(dosha, vata, pitta, kapha, season, req.symptoms, history_data, free_text, language)
 		session = RecommendationSession(
 			user_id=current_user.id,
@@ -49,7 +52,7 @@ async def generate(req: RecommendationRequest, request: Request, current_user: U
 			season=season,
 			free_text=free_text,
 			response_json=ai_response,
-			prevention_plan=ai_response.get('prevention_30day', ''),
+			prevention_plan=ai_response.get('prevention_plan', '') or ai_response.get('prevention_30day', ''),
 		)
 		db.add(session)
 		await db.commit()

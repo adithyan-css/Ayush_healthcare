@@ -122,7 +122,9 @@ class HeatmapCubit extends Cubit<HeatmapState> {
     emit(HeatmapLoading());
     try {
       final dynamic response = await _api.get('/heatmap/state/$stateId');
-      final Map<String, dynamic> detail = Map<String, dynamic>.from(response as Map);
+      final Map<String, dynamic> detail = response is Map<String, dynamic>
+          ? Map<String, dynamic>.from((response['data'] ?? response) as Map)
+          : <String, dynamic>{};
       emit(StateSelected(detail));
     } catch (e) {
       emit(HeatmapError('Failed to load state details: $e'));
@@ -130,6 +132,14 @@ class HeatmapCubit extends Cubit<HeatmapState> {
   }
 
   List<Map<String, dynamic>> _toDistrictList(dynamic response) {
+    if (response is Map<String, dynamic>) {
+      final dynamic data = response['data'];
+      if (data is List) {
+        return data
+            .map((dynamic item) => Map<String, dynamic>.from(item as Map))
+            .toList(growable: false);
+      }
+    }
     if (response is List) {
       return response
           .map((dynamic item) => Map<String, dynamic>.from(item as Map))

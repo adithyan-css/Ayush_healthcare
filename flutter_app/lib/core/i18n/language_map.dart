@@ -8,6 +8,7 @@ class AppText {
     <String, String>{'code': 'en', 'name': 'English'},
     <String, String>{'code': 'ta', 'name': 'Tamil'},
     <String, String>{'code': 'hi', 'name': 'Hindi'},
+    <String, String>{'code': 'te', 'name': 'Telugu'},
     <String, String>{'code': 'ja', 'name': 'Japanese'},
   ];
 

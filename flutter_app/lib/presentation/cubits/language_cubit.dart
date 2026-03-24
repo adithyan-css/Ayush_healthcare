@@ -15,7 +15,7 @@ class LanguageState extends Equatable {
 class LanguageCubit extends Cubit<LanguageState> {
   LanguageCubit() : super(const LanguageState('en'));
 
-  static const Set<String> supported = <String>{'en', 'ta', 'hi', 'ja'};
+  static const Set<String> supported = <String>{'en', 'ta', 'hi', 'te', 'ja'};
 
   Future<void> loadSavedLanguage() async {
     final String saved = HiveService.getLanguageCode();

@@ -3,6 +3,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'hive_service.dart';
 
 class ApiService {
+  static const String _apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://10.0.2.2:8000/api/v1',
+  );
+
   ApiService._internal() {
     _dio.interceptors.add(
       InterceptorsWrapper(
@@ -29,7 +34,7 @@ class ApiService {
 
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://10.0.2.2:8000/api/v1', // Android emulator; change for production
+      baseUrl: _apiBaseUrl,
       connectTimeout: const Duration(seconds: 20),
       receiveTimeout: const Duration(seconds: 20),
       sendTimeout: const Duration(seconds: 20),

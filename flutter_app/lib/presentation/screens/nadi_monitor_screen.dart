@@ -87,7 +87,7 @@ class _NadiMonitorScreenState extends State<NadiMonitorScreen> {
 											tickCount: 5,
 											dataSets: [
 												RadarDataSet(
-													  fillColor: Colors.green.withOpacity(0.25),
+														  fillColor: Colors.green.withValues(alpha: 0.25),
 													borderColor: Colors.green,
 													entryRadius: 2,
 													dataEntries: [

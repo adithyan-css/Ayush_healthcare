@@ -46,6 +46,8 @@ def normalize_language_code(code: str | None) -> str:
 		return 'ta'
 	if lowered in {'hi', 'hindi'}:
 		return 'hi'
+	if lowered in {'te', 'telugu'}:
+		return 'te'
 	if lowered in {'ja', 'japanese'}:
 		return 'ja'
 	return 'en'

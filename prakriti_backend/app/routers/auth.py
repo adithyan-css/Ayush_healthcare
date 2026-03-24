@@ -30,6 +30,14 @@ class RefreshRequest(BaseModel):
 	refresh_token: str
 
 
+class FirebaseVerifyRequest(BaseModel):
+	id_token: Optional[str] = None
+	firebase_uid: Optional[str] = None
+	email: Optional[str] = None
+	display_name: Optional[str] = None
+	language: Optional[str] = None
+
+
 class UpdateMeRequest(BaseModel):
 	display_name: Optional[str] = None
 	language: Optional[str] = None
@@ -82,6 +90,70 @@ async def login(payload: AuthLoginRequest, db: AsyncSession = Depends(get_db)):
 	access_token = create_access_token(data={'sub': str(user.id)})
 	refresh_token = create_refresh_token(data={'sub': str(user.id)})
 	return success_response({'access_token': access_token, 'refresh_token': refresh_token, 'token_type': 'bearer'}, 'Login successful')
+
+
+@router.post('/firebase-verify')
+async def firebase_verify(payload: FirebaseVerifyRequest, db: AsyncSession = Depends(get_db)):
+	await _ensure_password_hash_column(db)
+
+	verified_uid = ''
+	verified_email = ''
+	verified_name = ''
+
+	if payload.id_token:
+		try:
+			verified = auth_service.verify_firebase_token(payload.id_token)
+			verified_uid = verified.get('uid', '')
+			verified_email = verified.get('email', '')
+			verified_name = verified.get('name', '')
+		except Exception as exc:
+			raise HTTPException(status_code=401, detail=str(exc))
+	else:
+		verified_uid = (payload.firebase_uid or '').strip()
+		verified_email = (payload.email or '').strip().lower()
+		verified_name = (payload.display_name or '').strip()
+		if not verified_uid or not verified_email:
+			raise HTTPException(status_code=400, detail='firebase_uid and email required when id_token is absent')
+
+	if not verified_uid:
+		verified_uid = auth_service.generate_local_firebase_uid()
+	if not verified_email:
+		verified_email = f'{verified_uid}@firebase.local'
+	if not verified_name:
+		verified_name = verified_email.split('@')[0]
+
+	try:
+		result = await db.execute(select(User).where(User.firebase_uid == verified_uid))
+		user = result.scalars().first()
+
+		if not user:
+			by_email = await db.execute(select(User).where(User.email == verified_email))
+			user = by_email.scalars().first()
+
+		if not user:
+			user = User(
+				firebase_uid=verified_uid,
+				email=verified_email,
+				display_name=verified_name,
+				language=payload.language or 'en',
+				role='patient',
+			)
+			db.add(user)
+		else:
+			user.firebase_uid = verified_uid
+			user.email = verified_email
+			user.display_name = verified_name or user.display_name
+			if payload.language:
+				user.language = payload.language
+
+		await db.commit()
+		await db.refresh(user)
+		access_token = create_access_token(data={'sub': str(user.id)})
+		refresh_token = create_refresh_token(data={'sub': str(user.id)})
+		return success_response({'access_token': access_token, 'refresh_token': refresh_token, 'token_type': 'bearer'}, 'Firebase verified')
+	except Exception as exc:
+		await db.rollback()
+		raise HTTPException(status_code=500, detail=f'Firebase verification failed: {exc}')
 
 
 @router.post('/refresh')

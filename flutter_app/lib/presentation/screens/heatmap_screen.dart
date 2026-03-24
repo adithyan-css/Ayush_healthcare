@@ -175,7 +175,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProvider
                     children: <Widget>[
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _selectedCondition,
+							initialValue: _selectedCondition,
                           isDense: true,
                           decoration: InputDecoration(labelText: context.t('condition')),
                           items: _conditionOptions

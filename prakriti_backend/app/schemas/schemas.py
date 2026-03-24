@@ -64,6 +64,10 @@ class RecommendationRequest(BaseModel):
     symptoms: List[str]
     free_text: Optional[str] = None
     variation: Optional[bool] = False
+    user_prakriti: Optional[str] = None
+    history: Optional[List[Dict[str, Any]]] = None
+    season: Optional[str] = None
+    language: Optional[str] = None
 
 
 class RecommendationResponseFormat(BaseModel):
@@ -71,7 +75,8 @@ class RecommendationResponseFormat(BaseModel):
     diet: Dict[str, List[Any]]
     yoga: List[Any]
     dinacharya: List[Any]
-    prevention_30day: str
+    prevention_plan: str
+    prevention_30day: Optional[str] = None
 
 
 class RecommendationSessionResponse(BaseModel):

@@ -24,6 +24,30 @@ class RecommendationCubit extends Cubit<RecommendationState> {
 	final ApiService _api = ApiService.instance;
 	List<String> selectedSymptoms = [];
 
+	Map<String, dynamic> _extractDataMap(dynamic response) {
+		if (response is Map<String, dynamic>) {
+			final dynamic data = response['data'];
+			if (data is Map<String, dynamic>) {
+				return data;
+			}
+			return response;
+		}
+		return <String, dynamic>{};
+	}
+
+	List<dynamic> _extractDataList(dynamic response) {
+		if (response is Map<String, dynamic>) {
+			final dynamic data = response['data'];
+			if (data is List) {
+				return data;
+			}
+		}
+		if (response is List) {
+			return response;
+		}
+		return <dynamic>[];
+	}
+
 	void toggleSymptom(String symptom) {
 		if (selectedSymptoms.contains(symptom)) {
 			selectedSymptoms.remove(symptom);
@@ -43,11 +67,11 @@ class RecommendationCubit extends Cubit<RecommendationState> {
 	Future<void> generateRecommendation(String? freeText) async {
 		emit(RecommendationLoading());
 		try {
-			final data = await _api.post('/recommendations/generate', {
+			final dynamic response = await _api.post('/recommendations/generate', {
 				'symptoms': selectedSymptoms,
 				'free_text': freeText,
 			});
-			final mapped = Map<String, dynamic>.from(data as Map);
+			final mapped = _extractDataMap(response);
 			await HiveService.saveSession(mapped);
 			await HiveService.clearOldSessions();
 			emit(RecommendationLoaded(mapped));
@@ -58,8 +82,8 @@ class RecommendationCubit extends Cubit<RecommendationState> {
 
 	Future<List<dynamic>> loadHistory() async {
 		try {
-			final history = await _api.get('/recommendations/history');
-			return history as List<dynamic>;
+			final dynamic history = await _api.get('/recommendations/history');
+			return _extractDataList(history);
 		} catch (_) {
 			return HiveService.getSessions();
 		}

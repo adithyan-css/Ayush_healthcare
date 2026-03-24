@@ -2,12 +2,14 @@ from typing import Any
 import json
 
 from app.config import settings
+from app.services.claude_service import ClaudeService
 from app.services.hf_service import HFService
 
 
 class RecommendationService:
     def __init__(self):
         self.hf = HFService()
+        self.claude = ClaudeService()
         self.gemini_api_key = settings.GOOGLE_API_KEY
 
     async def generate_recommendation(
@@ -22,7 +24,7 @@ class RecommendationService:
         free_text: str | None,
         language: str,
     ) -> dict[str, Any]:
-        language_map = {'en': 'English', 'ta': 'Tamil', 'hi': 'Hindi', 'ja': 'Japanese'}
+        language_map = {'en': 'English', 'ta': 'Tamil', 'hi': 'Hindi', 'te': 'Telugu', 'ja': 'Japanese'}
         language_name = language_map.get((language or 'en').lower(), 'English')
         symptoms_text = ', '.join([str(item).strip() for item in symptoms if str(item).strip()])
 
@@ -36,6 +38,25 @@ class RecommendationService:
 
         rule_based = self._rule_based_fallback(mapped_dosha, season, symptoms, history)
         safe_rule = self._normalize_output(rule_based)
+
+        if self.claude.is_configured():
+            try:
+                claude_result = await self.claude.generate_recommendation_json(
+                    dosha=mapped_dosha,
+                    vata=vata,
+                    pitta=pitta,
+                    kapha=kapha,
+                    season=season,
+                    symptoms=symptoms,
+                    history=history,
+                    free_text=free_text,
+                    language_name=language_name,
+                    fallback_json=safe_rule,
+                )
+                merged = self._merge_recommendations(safe_rule, claude_result)
+                return self._normalize_output(merged)
+            except Exception:
+                pass
 
         if not self.gemini_api_key:
             return safe_rule
@@ -54,7 +75,7 @@ class RecommendationService:
                 'You are an expert Ayurvedic clinician assistant. Make recommendations personalized and context-aware. '
                 'Explain reasoning briefly inside JSON field content. Do not repeat same response patterns across similar requests. '
                 'Use Ayurvedic terminology where suitable. '
-                'Return ONLY valid JSON with keys herbs, diet, yoga, dinacharya, prevention_30day. Do not return markdown. '
+                'Return ONLY valid JSON with keys herbs, diet, yoga, dinacharya, prevention_plan. Do not return markdown. '
                 f'Respond strictly in {language_name}. Do not translate JSON keys. '
                 f'Language={language}. Profile dosha={mapped_dosha}. Season={season}. Symptoms={symptoms}. Notes={free_text or "None"}. '
                 f'History:\n{history_text}. '
@@ -92,7 +113,7 @@ class RecommendationService:
         social_summary: str,
         language: str = 'en',
     ) -> list[str]:
-        language_map = {'en': 'English', 'ta': 'Tamil', 'hi': 'Hindi', 'ja': 'Japanese'}
+        language_map = {'en': 'English', 'ta': 'Tamil', 'hi': 'Hindi', 'te': 'Telugu', 'ja': 'Japanese'}
         language_name = language_map.get((language or 'en').lower(), 'English')
         if not self.gemini_api_key:
             return [
@@ -142,7 +163,7 @@ class RecommendationService:
         social_summary: str,
         language: str = 'en',
     ) -> str:
-        language_map = {'en': 'English', 'ta': 'Tamil', 'hi': 'Hindi', 'ja': 'Japanese'}
+        language_map = {'en': 'English', 'ta': 'Tamil', 'hi': 'Hindi', 'te': 'Telugu', 'ja': 'Japanese'}
         language_name = language_map.get((language or 'en').lower(), 'English')
         if not self.gemini_api_key:
             return (
@@ -183,7 +204,7 @@ class RecommendationService:
         )
 
     async def generate_vaidya_suggestion(self, symptoms: list[str], dosha: str, history: list[dict], language: str = 'en') -> dict[str, Any]:
-        language_map = {'en': 'English', 'ta': 'Tamil', 'hi': 'Hindi', 'ja': 'Japanese'}
+        language_map = {'en': 'English', 'ta': 'Tamil', 'hi': 'Hindi', 'te': 'Telugu', 'ja': 'Japanese'}
         language_name = language_map.get((language or 'en').lower(), 'English')
         if not self.gemini_api_key:
             return self._default_vaidya_suggestion(dosha)
@@ -306,7 +327,7 @@ class RecommendationService:
                 {'time': '12:30', 'activity': 'Main meal with seasonal foods'},
                 {'time': '22:00', 'activity': 'Sleep hygiene routine'},
             ],
-            'prevention_30day': f'Follow a {dosha} balancing routine in {season}, monitor symptoms: {", ".join(symptoms[:4])}. {recurrence_note}',
+            'prevention_plan': f'Follow a {dosha} balancing routine in {season}, monitor symptoms: {", ".join(symptoms[:4])}. {recurrence_note}',
         }
 
     def _merge_recommendations(self, base: dict[str, Any], enhanced: dict[str, Any]) -> dict[str, Any]:
@@ -314,7 +335,7 @@ class RecommendationService:
             return base
 
         merged = dict(base)
-        for key in ['herbs', 'diet', 'yoga', 'dinacharya', 'prevention_30day']:
+        for key in ['herbs', 'diet', 'yoga', 'dinacharya', 'prevention_plan', 'prevention_30day']:
             if key in enhanced and enhanced[key]:
                 merged[key] = enhanced[key]
         return merged
@@ -356,7 +377,7 @@ class RecommendationService:
         if not isinstance(dinacharya, list):
             dinacharya = []
 
-        prevention = str(safe.get('prevention_30day', '')).strip()
+        prevention = str(safe.get('prevention_plan', '') or safe.get('prevention_30day', '')).strip()
         if not prevention:
             prevention = 'Follow dosha-balanced routine, regular sleep, hydration, and symptom monitoring for 30 days.'
 
@@ -365,6 +386,7 @@ class RecommendationService:
             'diet': {'eat': [str(x) for x in eat], 'avoid': [str(x) for x in avoid]},
             'yoga': [str(x) for x in yoga],
             'dinacharya': dinacharya,
+            'prevention_plan': prevention,
             'prevention_30day': prevention,
         }
 
