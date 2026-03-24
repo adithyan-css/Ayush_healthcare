@@ -14,4 +14,4 @@ async def logout(): pass
 async def get_me(): pass
 
 @router.put("/me")
-async def update_me(): pass\n
+async def update_me(): pass

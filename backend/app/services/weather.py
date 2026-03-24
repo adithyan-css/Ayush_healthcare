@@ -1,2 +1,2 @@
 class WeatherService:
-    def get_weather(self): pass\n
+    def get_weather(self): pass

@@ -8,4 +8,4 @@ async def report(): pass
 async def community(): pass
 
 @router.get("/clusters")
-async def clusters(): pass\n
+async def clusters(): pass

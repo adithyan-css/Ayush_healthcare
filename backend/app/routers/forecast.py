@@ -20,4 +20,4 @@ async def explain(district_id: str): pass
 async def bulletin(): pass
 
 @router.post("/refresh")
-async def refresh(): pass\n
+async def refresh(): pass

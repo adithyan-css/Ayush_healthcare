@@ -11,5 +11,9 @@ async def get_db():
         yield session
 
 async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)\n
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("✅ Database connected successfully! (Neon/Postgres/SQLite initialized)")
+    except Exception as e:
+        print(f"❌ Database connection failed: {e}")

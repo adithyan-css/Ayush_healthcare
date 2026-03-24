@@ -1,14 +1,29 @@
-from sqlalchemy import Column, String, DateTime, func
-from app.database import Base
 import uuid
+from datetime import datetime
+from sqlalchemy import String, DateTime, func, Uuid
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import List, TYPE_CHECKING
+from app.database import Base
+
+if TYPE_CHECKING:
+    from app.models.prakriti import PrakritiProfile
+    from app.models.recommendation import RecommendationSession
+    from app.models.hrv import HrvReading
 
 class User(Base):
     __tablename__ = "users"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    firebase_uid = Column(String, unique=True, index=True)
-    email = Column(String, unique=True, index=True)
-    display_name = Column(String)
-    role = Column(String, default="patient")
-    language = Column(String, default="en")
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())\n
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4, index=True)
+    firebase_uid: Mapped[str] = mapped_column(String, unique=True, index=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    display_name: Mapped[str] = mapped_column(String)
+    role: Mapped[str] = mapped_column(String, default="patient")
+    language: Mapped[str] = mapped_column(String, default="en")
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    profiles: Mapped[List["PrakritiProfile"]] = relationship("PrakritiProfile", back_populates="user", cascade="all, delete-orphan")
+    sessions: Mapped[List["RecommendationSession"]] = relationship("RecommendationSession", back_populates="user", cascade="all, delete-orphan")
+    hrv_readings: Mapped[List["HrvReading"]] = relationship("HrvReading", back_populates="user", cascade="all, delete-orphan")

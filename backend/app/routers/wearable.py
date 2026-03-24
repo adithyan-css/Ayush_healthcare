@@ -11,4 +11,4 @@ async def nadi(): pass
 async def trend(): pass
 
 @router.get("/anomalies")
-async def anomalies(): pass\n
+async def anomalies(): pass

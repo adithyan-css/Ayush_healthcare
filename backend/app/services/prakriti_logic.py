@@ -1,2 +1,2 @@
 class PrakritiLogic:
-    def calculate_scores(self, answers): pass\n
+    def calculate_scores(self, answers): pass

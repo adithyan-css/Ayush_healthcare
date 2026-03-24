@@ -17,4 +17,4 @@ async def interactions(): pass
 async def consult(): pass
 
 @router.patch("/outcome/{consult_id}")
-async def outcome(consult_id: str): pass\n
+async def outcome(consult_id: str): pass

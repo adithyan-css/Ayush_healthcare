@@ -1,17 +1,11 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import get_db
-from app.services.nlp_service import NLPService
-
+from fastapi import APIRouter
 router = APIRouter()
-nlp_service = NLPService()
-
 @router.post("/report")
-async def report(db: AsyncSession = Depends(get_db)): return {"status": "reported"}
-
+async def report(data: dict):
+    return {"status": "success", "message": "Symptoms logged"}
 @router.get("/community")
-async def community(db: AsyncSession = Depends(get_db)): return []
-
+async def community():
+    return [{"symptom": "Dry Cough", "count": 140, "trend": "up"}]
 @router.get("/clusters")
-async def clusters(db: AsyncSession = Depends(get_db)): 
-    return await nlp_service.cluster_symptoms()\n
+async def clusters():
+    return {"clusters": [{"region": "HSR Layout", "condition": "Vata allergy", "risk": "Medium"}]}

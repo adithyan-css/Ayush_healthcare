@@ -14,4 +14,4 @@ async def update_profile(): pass
 async def vision_analyse(): pass
 
 @router.get("/tips")
-async def get_tips(): pass\n
+async def get_tips(): pass

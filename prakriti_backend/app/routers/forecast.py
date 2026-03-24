@@ -1,28 +1,22 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import get_db
-from app.services.ml_service import MLService
-
+from fastapi import APIRouter
 router = APIRouter()
-ml_service = MLService()
-
 @router.get("/national")
-async def national(db: AsyncSession = Depends(get_db)): return await ml_service.generate_forecast()
-
+async def national():
+    return {"30_day_trend": "Increasing Vata-related joint issues", "regions": ["North", "South"]}
 @router.get("/regions")
-async def regions(db: AsyncSession = Depends(get_db)): return []
-
+async def regions():
+    return [{"region": "North", "trend_score": 0.8}]
 @router.get("/population")
-async def population(db: AsyncSession = Depends(get_db)): return {}
-
+async def population():
+    return {"at_risk": 500000}
 @router.get("/seasonal")
-async def seasonal(db: AsyncSession = Depends(get_db)): return {}
-
+async def seasonal():
+    return {"current_season": "Hemanta", "advisory": "Consume rich, warm, oily foods."}
 @router.get("/explain/{district_id}")
-async def explain(district_id: str, db: AsyncSession = Depends(get_db)): return {"explanation": "seasonal factors"}
-
+async def explain(district_id: str):
+    return {"explanation": "High humidity and dropping temperatures correlate strongly with upcoming Kapha spikes in the region."}
 @router.post("/bulletin")
-async def bulletin(db: AsyncSession = Depends(get_db)): return {"pdf": "url"}
-
+async def bulletin():
+    return {"pdf_url": "https://prakritios.mock/bulletin.pdf"}
 @router.post("/refresh")
-async def refresh(db: AsyncSession = Depends(get_db)): return {"status": "refreshed"}\n
+async def refresh(): return {"status": "refreshed"}

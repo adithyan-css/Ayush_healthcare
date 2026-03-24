@@ -14,4 +14,4 @@ async def get_rec(id: str): pass
 async def delete_rec(id: str): pass
 
 @router.post("/prevention")
-async def prevention(): pass\n
+async def prevention(): pass

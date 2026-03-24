@@ -17,4 +17,4 @@ class RecommendationOutput(BaseModel):
     diet: Dict[str, List[str]]
     yoga: List[str]
     dinacharya: List[str]
-    prevention30: str\n
+    prevention30: str

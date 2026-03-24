@@ -14,4 +14,4 @@ async def get_trend(state_id: str): pass
 async def get_rising(): pass
 
 @router.post("/refresh")
-async def refresh(): pass\n
+async def refresh(): pass

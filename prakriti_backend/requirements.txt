@@ -13,4 +13,4 @@ passlib[bcrypt]
 python-multipart
 fpdf2
 httpx
-alembic\n
+alembic

@@ -1,1 +1,1 @@
-def verify_token(token): pass\n
+def verify_token(token): pass

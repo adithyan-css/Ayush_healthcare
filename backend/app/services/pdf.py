@@ -1,2 +1,2 @@
 class PDFService:
-    def generate_pdf(self, data): pass\n
+    def generate_pdf(self, data): pass

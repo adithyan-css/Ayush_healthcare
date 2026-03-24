@@ -7,4 +7,4 @@ class ClaudeService:
             "yoga": ["Surya Namaskar"],
             "dinacharya": ["Early to bed"],
             "prevention30": "Risk of Vata imbalance"
-        }\n
+        }

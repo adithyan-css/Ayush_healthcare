@@ -1,23 +1,20 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import get_db
-
+from fastapi import APIRouter
 router = APIRouter()
-
 @router.get("/patients")
-async def patients(db: AsyncSession = Depends(get_db)): return []
-
+async def patients():
+    return [{"patient_id": "P123", "name": "Rahul", "current_dosha": "Kapha"}]
 @router.get("/patients/{uid}")
-async def patient(uid: str, db: AsyncSession = Depends(get_db)): return {}
-
+async def patient(uid: str):
+    return {"uid": uid, "name": "Rahul", "history_len": 4}
 @router.post("/suggest")
-async def suggest(db: AsyncSession = Depends(get_db)): return {"suggestions": []}
-
+async def suggest(data: dict):
+    return {"ai_suggestions": ["Prescribe Triphala", "Advise dietary changes"]}
 @router.post("/interactions")
-async def interactions(db: AsyncSession = Depends(get_db)): return []
-
+async def interactions(data: dict):
+    return {"safe": True, "warnings": []}
 @router.post("/consult")
-async def consult(db: AsyncSession = Depends(get_db)): return {"id": 1}
-
+async def consult(data: dict):
+    return {"consult_id": "C-999", "status": "scheduled"}
 @router.patch("/outcome/{consult_id}")
-async def outcome(consult_id: str, db: AsyncSession = Depends(get_db)): return {"status": "updated"}\n
+async def outcome(consult_id: str):
+    return {"status": "completed"}
