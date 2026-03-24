@@ -8,6 +8,8 @@ class Settings(BaseSettings):
 	JWT_ALGORITHM: str = 'HS256'
 	ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 	REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+	ANTHROPIC_API_KEY: str = ''
+	CLAUDE_MODEL: str = 'claude-3-5-sonnet-latest'
 	GOOGLE_API_KEY: str = ''
 	OPENWEATHER_API_KEY: str = ''
 	TWITTER_BEARER_TOKEN: str = ''

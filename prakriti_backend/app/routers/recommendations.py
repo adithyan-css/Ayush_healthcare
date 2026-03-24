@@ -7,11 +7,11 @@ from app.models.prakriti import PrakritiProfile
 from app.models.recommendation import RecommendationSession
 from app.schemas.schemas import RecommendationRequest, RecommendationSessionResponse
 from app.dependencies import get_current_user
-from app.services.gemini_service import GeminiService
+from app.services.recommendation_service import RecommendationService
 from app.services.weather_service import WeatherService
 
 router = APIRouter()
-gemini = GeminiService()
+recommendation_service = RecommendationService()
 ws = WeatherService()
 
 
@@ -40,10 +40,10 @@ async def generate(req: RecommendationRequest, current_user: User = Depends(get_
 			suffix = ', please vary the suggestions from previous recommendations'
 			free_text = (free_text or '') + suffix
 
-		ai_response = await gemini.generate_recommendation(dosha, vata, pitta, kapha, season, req.symptoms, history_data, free_text, current_user.language)
+		ai_response = await recommendation_service.generate_recommendation(dosha, vata, pitta, kapha, season, req.symptoms, history_data, free_text, current_user.language)
 		session = RecommendationSession(
 			user_id=current_user.id,
-			symptoms=req.symptoms,
+			symptoms={'items': req.symptoms},
 			season=season,
 			free_text=free_text,
 			response_json=ai_response,
@@ -63,7 +63,11 @@ async def get_history(page: int = 1, limit: int = 10, current_user: User = Depen
 	try:
 		offset = (page - 1) * limit
 		result = await db.execute(select(RecommendationSession).where(RecommendationSession.user_id == current_user.id).order_by(RecommendationSession.created_at.desc()).offset(offset).limit(limit))
-		return result.scalars().all()
+		sessions = result.scalars().all()
+		for session in sessions:
+			if isinstance(session.symptoms, dict):
+				session.symptoms = session.symptoms.get('items', [])
+		return sessions
 	except Exception:
 		return []
 
@@ -75,6 +79,8 @@ async def get_rec(id: str, current_user: User = Depends(get_current_user), db: A
 		session = result.scalars().first()
 		if not session:
 			raise HTTPException(status_code=404)
+		if isinstance(session.symptoms, dict):
+			session.symptoms = session.symptoms.get('items', [])
 		return session
 	except HTTPException:
 		raise
@@ -110,7 +116,7 @@ async def prevention(data: dict, current_user: User = Depends(get_current_user),
 		profile = profile_res.scalars().first()
 		if profile:
 			dosha = profile.dominant_dosha
-		plan = await gemini.generate_prevention_plan(location=location, risk_score=risk_score, dosha=dosha, age_group=age_group)
+		plan = recommendation_service.generate_prevention_plan(location=location, risk_score=risk_score, dosha=dosha, season=ws.get_current_season())
 		return {'plan': plan}
 	except Exception:
 		return {

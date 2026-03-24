@@ -8,12 +8,10 @@ from app.dependencies import get_current_user
 from app.models.district import DistrictRisk
 from app.models.user import User
 from app.schemas.schemas import DistrictRiskResponse
-from app.services.ml_service import MLService
-from app.services.weather_service import WeatherService
+from app.services.heatmap_service import HeatmapService
 
 router = APIRouter()
-ws = WeatherService()
-ml = MLService()
+heatmap_service = HeatmapService()
 
 
 def _risk_level(score: int) -> str:
@@ -66,10 +64,8 @@ async def get_districts(condition: str | None = None, season: str | None = None,
     try:
         await _ensure_seeded(db)
         stmt = select(DistrictRisk)
-        if condition and condition != 'all':
-            stmt = stmt.where(DistrictRisk.top_condition == condition)
         rows = (await db.execute(stmt.order_by(DistrictRisk.risk_score.desc()))).scalars().all()
-        return rows
+        return heatmap_service.filter_districts(rows, condition=condition, season=season)
     except Exception:
         return []
 
@@ -122,23 +118,8 @@ async def refresh(current_user: User = Depends(get_current_user), db: AsyncSessi
         await _ensure_seeded(db)
         rows = (await db.execute(select(DistrictRisk))).scalars().all()
         updated = 0
-        season = ws.get_current_season()
         for row in rows:
-            weather = await ws.get_district_weather(row.latitude or 20.0, row.longitude or 78.0)
-            monthly = row.monthly_cases if isinstance(row.monthly_cases, list) else list(row.monthly_cases.values())
-            risk = ml.calculate_district_risk(
-                humidity=weather.humidity,
-                rainfall=weather.rainfall,
-                aqi=weather.aqi * 50,
-                temperature=weather.temperature,
-                season=season,
-                monthly_cases=[int(x) for x in monthly[:6]] if monthly else [50, 52, 55],
-            )
-            row.risk_score = int(risk['risk_score'])
-            row.risk_level = risk['risk_level']
-            row.top_condition = risk['top_condition']
-            row.trend = risk['trend']
-            row.updated_at = datetime.utcnow()
+            await heatmap_service.refresh_risk(row)
             updated += 1
         await db.commit()
         return {'updated': updated, 'timestamp': datetime.utcnow().isoformat()}

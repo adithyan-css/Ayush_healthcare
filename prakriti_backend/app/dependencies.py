@@ -8,16 +8,22 @@ import redis.asyncio as redis
 from app.config import settings
 from jose import jwt, JWTError
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/firebase-verify')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login')
 redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
 	try:
-		is_blacklisted = await redis_client.get(f'blacklist:{token}')
-		if is_blacklisted:
-			raise HTTPException(status_code=401, detail='Token blacklisted')
-		payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS256'])
+		try:
+			is_blacklisted = await redis_client.get(f'blacklist:{token}')
+			if is_blacklisted:
+				raise HTTPException(status_code=401, detail='Token blacklisted')
+		except Exception:
+			pass
+
+		payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+		if payload.get('type') not in (None, 'access'):
+			raise HTTPException(status_code=401, detail='Invalid token type')
 		user_id = payload.get('sub')
 		if not user_id:
 			raise HTTPException(status_code=401, detail='Invalid token payload')

@@ -1,5 +1,5 @@
 class PrakritiService:
-	def calculate_dominant_dosha(self, vata: int, pitta: int, kapha: int):
+	def calculate_dominant_dosha(self, vata: float, pitta: float, kapha: float):
 		total = max(1, vata + pitta + kapha)
 		vata_percent = round((vata / total) * 100, 1)
 		pitta_percent = round((pitta / total) * 100, 1)

@@ -7,10 +7,10 @@ from app.dependencies import get_current_user
 from app.models.hrv import HrvReading
 from app.models.user import User
 from app.schemas.schemas import NadiDiagnosisResponse, WearableReadingRequest
-from app.services.ml_service import MLService
+from app.services.wearable_service import WearableService
 
 router = APIRouter()
-ml = MLService()
+wearable_service = WearableService()
 
 
 @router.post('/hrv-sync')
@@ -29,9 +29,9 @@ async def hrv_sync(req: WearableReadingRequest, current_user: User = Depends(get
 
     for reading in req.readings:
         ms = float(reading['hrv_ms'])
-        nadi = ml.detect_nadi_type(ms)
+        nadi = wearable_service.detect_nadi(ms)
         check = hist_vals + [ms]
-        anomaly_detected = ml.detect_anomaly(check)
+        anomaly_detected = wearable_service.is_anomaly(check)
 
         row = HrvReading(
             user_id=current_user.id,
@@ -59,15 +59,10 @@ async def nadi(current_user: User = Depends(get_current_user), db: AsyncSession 
     if not hist:
         return {'type': 'Unknown', 'hrv_ms': 0.0, 'stress_index': 0.0, 'is_anomaly': False}
 
-    avg = sum(item.hrv_ms for item in hist) / len(hist)
-    nadi_type = ml.detect_nadi_type(avg)
-    anomaly = any(item.is_anomaly for item in hist)
-    return {
-        'type': nadi_type,
-        'hrv_ms': round(avg, 2),
-        'stress_index': round(500 / avg if avg > 0 else 100, 2),
-        'is_anomaly': anomaly,
-    }
+    return wearable_service.build_nadi_summary(
+        readings=[item.hrv_ms for item in hist],
+        anomaly_flags=[item.is_anomaly for item in hist],
+    )
 
 
 @router.get('/trend')

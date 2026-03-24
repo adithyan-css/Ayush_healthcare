@@ -25,6 +25,7 @@ def upgrade() -> None:
         sa.Column('firebase_uid', sa.String(), nullable=False),
         sa.Column('email', sa.String(), nullable=False),
         sa.Column('display_name', sa.String(), nullable=False),
+        sa.Column('password_hash', sa.String(), nullable=True),
         sa.Column('role', sa.String(), nullable=False, server_default='patient'),
         sa.Column('language', sa.String(), nullable=False, server_default='en'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),

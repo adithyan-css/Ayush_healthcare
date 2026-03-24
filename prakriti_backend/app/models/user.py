@@ -18,6 +18,7 @@ class User(Base):
 	firebase_uid: Mapped[str] = mapped_column(String, unique=True, index=True)
 	email: Mapped[str] = mapped_column(String, unique=True, index=True)
 	display_name: Mapped[str] = mapped_column(String)
+	password_hash: Mapped[str] = mapped_column(String, nullable=True)
 	role: Mapped[str] = mapped_column(String, default='patient')
 	language: Mapped[str] = mapped_column(String, default='en')
 	created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
 import redis.asyncio as redis
@@ -72,4 +72,8 @@ async def _seed_default_districts() -> None:
 async def init_db():
 	async with engine.begin() as conn:
 		await conn.run_sync(Base.metadata.create_all)
+		try:
+			await conn.execute(text('ALTER TABLE users ADD COLUMN password_hash VARCHAR'))
+		except Exception:
+			pass
 	await _seed_default_districts()

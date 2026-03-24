@@ -18,7 +18,11 @@ prakriti_service = PrakritiService()
 @router.post('/profile', response_model=PrakritiProfileResponse)
 async def create_profile(data: PrakritiProfileCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
 	try:
-		profile = PrakritiProfile(**data.model_dump(), user_id=current_user.id)
+		scores = prakriti_service.calculate_dominant_dosha(data.vata_score, data.pitta_score, data.kapha_score)
+		payload = data.model_dump()
+		payload['dominant_dosha'] = scores['dominant_dosha']
+		payload['risk_score'] = scores['constitutional_risk_score']
+		profile = PrakritiProfile(**payload, user_id=current_user.id)
 		db.add(profile)
 		await db.commit()
 		await db.refresh(profile)
@@ -45,13 +49,18 @@ async def get_profile(current_user: User = Depends(get_current_user), db: AsyncS
 @router.put('/profile', response_model=PrakritiProfileResponse)
 async def update_profile(data: PrakritiProfileCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
 	try:
+		scores = prakriti_service.calculate_dominant_dosha(data.vata_score, data.pitta_score, data.kapha_score)
+		payload = data.model_dump()
+		payload['dominant_dosha'] = scores['dominant_dosha']
+		payload['risk_score'] = scores['constitutional_risk_score']
+
 		result = await db.execute(select(PrakritiProfile).where(PrakritiProfile.user_id == current_user.id))
 		profile = result.scalars().first()
 		if not profile:
-			profile = PrakritiProfile(**data.model_dump(), user_id=current_user.id)
+			profile = PrakritiProfile(**payload, user_id=current_user.id)
 			db.add(profile)
 		else:
-			for k, v in data.model_dump().items():
+			for k, v in payload.items():
 				setattr(profile, k, v)
 		await db.commit()
 		await db.refresh(profile)

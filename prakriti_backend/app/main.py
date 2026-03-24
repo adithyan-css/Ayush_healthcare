@@ -1,12 +1,17 @@
+import logging
 from sqlalchemy import text
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.requests import Request
 
 from app.config import settings
 from app.database import AsyncSessionLocal, init_db
 from app.routers import auth, prakriti, recommendations, heatmap, symptoms, forecast, wearable, vaidya
 
 app = FastAPI(title='PrakritiOS API', version='1.0.0')
+logger = logging.getLogger('prakriti_backend')
+logging.basicConfig(level=logging.INFO)
 
 app.add_middleware(
 	CORSMiddleware,
@@ -20,6 +25,7 @@ app.add_middleware(
 @app.on_event('startup')
 async def on_startup():
 	await init_db()
+	logger.info('PrakritiOS backend startup complete')
 
 
 app.include_router(auth.router, prefix='/api/v1/auth', tags=['Auth'])
@@ -53,3 +59,9 @@ async def health():
 		'environment': settings.ENVIRONMENT,
 		'database': 'connected' if db_ok else 'unavailable',
 	}
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+	logger.exception('Unhandled error at %s', request.url.path)
+	return JSONResponse(status_code=500, content={'detail': 'Internal server error'})

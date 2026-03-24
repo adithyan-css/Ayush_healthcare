@@ -7,6 +7,7 @@ from app.dependencies import get_current_user
 from app.models.district import DistrictRisk
 from app.models.user import User
 from app.schemas.schemas import ForecastResponse
+from app.services.forecast_service import ForecastService
 from app.services.gemini_service import GeminiService
 from app.services.ml_service import MLService
 from app.services.nlp_service import NLPService
@@ -19,6 +20,7 @@ ws = WeatherService()
 nlp = NLPService()
 gemini = GeminiService()
 pdf = PDFService()
+forecast_service = ForecastService()
 
 ADVISORIES = {
     'winter': {
@@ -47,7 +49,7 @@ ADVISORIES = {
 @router.get('/national', response_model=ForecastResponse)
 async def national():
     try:
-        return ml.generate_forecast()
+        return forecast_service.national_forecast()
     except Exception:
         return {'conditions': {}, 'region_cards': [], 'population_risks': {}}
 
@@ -55,7 +57,7 @@ async def national():
 @router.get('/regions')
 async def regions():
     try:
-        return ml.generate_forecast()['region_cards']
+        return forecast_service.region_cards()
     except Exception:
         return []
 
@@ -63,7 +65,7 @@ async def regions():
 @router.get('/population')
 async def population():
     try:
-        return ml.generate_forecast()['population_risks']
+        return forecast_service.population_risks()
     except Exception:
         return {}
 
@@ -87,9 +89,7 @@ async def explain(district_id: str, db: AsyncSession = Depends(get_db)):
         if not district:
             return {'reasons': ['District not found. Showing default reason list.']}
 
-        weather = await ws.get_district_weather(district.latitude or 20.0, district.longitude or 78.0)
-        signal = nlp.get_signal_summary(district.state_code)
-        weather_summary = f'Temp {weather.temperature}C, humidity {weather.humidity}%, AQI index {weather.aqi}.'
+        weather_summary, social_summary = await forecast_service.build_explanation_context(district)
         reasons = await gemini.generate_xai_explanation(
             district=district.state_name,
             risk_level=district.risk_level,
@@ -97,7 +97,7 @@ async def explain(district_id: str, db: AsyncSession = Depends(get_db)):
             top_condition=district.top_condition,
             trend=district.trend,
             weather_summary=weather_summary,
-            social_summary=signal.summary,
+            social_summary=social_summary,
         )
         return {'reasons': reasons[:5]}
     except Exception:
