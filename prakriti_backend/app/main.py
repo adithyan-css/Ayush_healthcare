@@ -28,6 +28,13 @@ async def on_startup():
 	logger.info('PrakritiOS backend startup complete')
 
 
+@app.middleware('http')
+async def request_logging_middleware(request: Request, call_next):
+	response = await call_next(request)
+	logger.info('%s %s -> %s', request.method, request.url.path, response.status_code)
+	return response
+
+
 app.include_router(auth.router, prefix='/api/v1/auth', tags=['Auth'])
 app.include_router(prakriti.router, prefix='/api/v1/prakriti', tags=['Prakriti'])
 app.include_router(recommendations.router, prefix='/api/v1/recommendations', tags=['Recommendations'])

@@ -28,7 +28,7 @@ class RecommendationService:
                 return await self._generate_with_claude(dosha, vata, pitta, kapha, season, symptoms, history, free_text, language)
             except Exception:
                 pass
-        return self._rule_based_fallback(dosha, season, symptoms)
+        return self._rule_based_fallback(dosha, season, symptoms, history)
 
     async def _generate_with_claude(
         self,
@@ -82,40 +82,76 @@ class RecommendationService:
             text = text[3:-3].strip()
         return json.loads(text)
 
-    def _rule_based_fallback(self, dosha: str, season: str, symptoms: list[str]) -> dict[str, Any]:
+    def _rule_based_fallback(self, dosha: str, season: str, symptoms: list[str], history: list[dict]) -> dict[str, Any]:
         dosha_key = dosha.lower()
-        if dosha_key == 'pitta':
-            herbs = [
-                {'name': 'Guduchi', 'dosage': '500 mg', 'timing': 'after lunch'},
-                {'name': 'Amalaki', 'dosage': '1 tsp powder', 'timing': 'morning'},
-            ]
-            diet_eat = ['Cucumber', 'Bottle gourd', 'Warm but not spicy meals']
-            diet_avoid = ['Excess chili', 'Deep fried food', 'Late-night meals']
-        elif dosha_key == 'kapha':
-            herbs = [
-                {'name': 'Trikatu', 'dosage': '250 mg', 'timing': 'before meals'},
-                {'name': 'Tulsi', 'dosage': '2 leaves tea', 'timing': 'morning'},
-            ]
-            diet_eat = ['Millets', 'Warm soups', 'Light spiced meals']
-            diet_avoid = ['Cold dairy', 'Sugary desserts', 'Heavy dinner']
+        symptoms_l = [s.lower().strip() for s in symptoms]
+
+        rules = {
+            'vata': {
+                'match': ['anxiety', 'dryness', 'constipation'],
+                'herbs': [
+                    {'name': 'ashwagandha', 'dosage': '500 mg', 'timing': 'night'},
+                    {'name': 'ginger', 'dosage': '2 g tea', 'timing': 'morning'},
+                ],
+                'diet_eat': ['warm foods', 'soups'],
+                'diet_avoid': ['cold raw foods', 'irregular meals'],
+                'yoga': ['slow yoga', 'breathing'],
+            },
+            'pitta': {
+                'match': ['acidity', 'anger', 'heat'],
+                'herbs': [
+                    {'name': 'amla', 'dosage': '1 tsp powder', 'timing': 'morning'},
+                    {'name': 'neem', 'dosage': '250 mg', 'timing': 'after lunch'},
+                ],
+                'diet_eat': ['cooling foods'],
+                'diet_avoid': ['spicy fried foods', 'excess caffeine'],
+                'yoga': ['cooling pranayama'],
+            },
+            'kapha': {
+                'match': ['lethargy', 'weight gain'],
+                'herbs': [
+                    {'name': 'trikatu', 'dosage': '250 mg', 'timing': 'before meals'},
+                ],
+                'diet_eat': ['light foods'],
+                'diet_avoid': ['heavy sweet foods', 'cold dairy'],
+                'yoga': ['active yoga'],
+            },
+        }
+
+        selected = rules.get(dosha_key, rules['vata'])
+        if any(any(marker in symptom for marker in selected['match']) for symptom in symptoms_l):
+            herbs = selected['herbs']
+            diet_eat = selected['diet_eat']
+            diet_avoid = selected['diet_avoid']
+            yoga = selected['yoga']
         else:
-            herbs = [
-                {'name': 'Ashwagandha', 'dosage': '500 mg', 'timing': 'night'},
-                {'name': 'Triphala', 'dosage': '1 tsp', 'timing': 'bedtime'},
-            ]
-            diet_eat = ['Warm cooked meals', 'Stewed fruits', 'Ghee in moderation']
-            diet_avoid = ['Cold raw salads at night', 'Irregular meals', 'Excess fasting']
+            herbs = selected['herbs']
+            diet_eat = selected['diet_eat'] + ['seasonal vegetables']
+            diet_avoid = selected['diet_avoid']
+            yoga = selected['yoga']
+
+        recent_symptoms = []
+        for item in history[:3]:
+            values = item.get('symptoms', [])
+            if isinstance(values, list):
+                recent_symptoms.extend([str(v).lower() for v in values])
+
+        recurrence_note = 'No recent recurrence pattern detected.'
+        if recent_symptoms:
+            overlap = sorted(set(symptoms_l).intersection(set(recent_symptoms)))
+            if overlap:
+                recurrence_note = f'Recent recurrence observed for: {", ".join(overlap[:3])}.'
 
         return {
             'herbs': herbs,
             'diet': {'eat': diet_eat, 'avoid': diet_avoid},
-            'yoga': ['Anulom Vilom 10 min', 'Surya Namaskar 10 min'],
+            'yoga': yoga,
             'dinacharya': [
                 {'time': '06:00', 'activity': 'Warm water and breathwork'},
                 {'time': '12:30', 'activity': 'Main meal with seasonal foods'},
                 {'time': '22:00', 'activity': 'Sleep hygiene routine'},
             ],
-            'prevention_30day': f'Follow a {dosha} balancing routine in {season}, monitor symptoms: {", ".join(symptoms[:4])}.',
+            'prevention_30day': f'Follow a {dosha} balancing routine in {season}, monitor symptoms: {", ".join(symptoms[:4])}. {recurrence_note}',
         }
 
     def generate_prevention_plan(self, location: str, risk_score: int, dosha: str, season: str) -> str:

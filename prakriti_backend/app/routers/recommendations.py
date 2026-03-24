@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -52,6 +53,7 @@ async def generate(req: RecommendationRequest, current_user: User = Depends(get_
 		db.add(session)
 		await db.commit()
 		await db.refresh(session)
+		session.symptoms = req.symptoms
 		return session
 	except Exception as exc:
 		await db.rollback()
@@ -75,7 +77,11 @@ async def get_history(page: int = 1, limit: int = 10, current_user: User = Depen
 @router.get('/{id}', response_model=RecommendationSessionResponse)
 async def get_rec(id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
 	try:
-		result = await db.execute(select(RecommendationSession).where(RecommendationSession.id == id, RecommendationSession.user_id == current_user.id))
+		try:
+			rec_id = uuid.UUID(id)
+		except ValueError:
+			raise HTTPException(status_code=400, detail='Invalid recommendation id')
+		result = await db.execute(select(RecommendationSession).where(RecommendationSession.id == rec_id, RecommendationSession.user_id == current_user.id))
 		session = result.scalars().first()
 		if not session:
 			raise HTTPException(status_code=404)
@@ -91,7 +97,11 @@ async def get_rec(id: str, current_user: User = Depends(get_current_user), db: A
 @router.delete('/{id}')
 async def delete_rec(id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
 	try:
-		result = await db.execute(select(RecommendationSession).where(RecommendationSession.id == id, RecommendationSession.user_id == current_user.id))
+		try:
+			rec_id = uuid.UUID(id)
+		except ValueError:
+			raise HTTPException(status_code=400, detail='Invalid recommendation id')
+		result = await db.execute(select(RecommendationSession).where(RecommendationSession.id == rec_id, RecommendationSession.user_id == current_user.id))
 		session = result.scalars().first()
 		if not session:
 			raise HTTPException(status_code=404)

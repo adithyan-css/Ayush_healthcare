@@ -1,17 +1,27 @@
 from typing import Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from jose import JWTError, jwt
+from jose import JWTError, jwt, ExpiredSignatureError
 from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.database import get_db
 from app.dependencies import get_current_user, oauth2_scheme, redis_client
+from app.config import settings
 from app.models.user import User
 from app.schemas.schemas import UserResponse, AuthRegisterRequest, AuthLoginRequest, AuthTokenResponse
 from app.services.auth_service import AuthService
 
 router = APIRouter()
 auth_service = AuthService()
+
+
+async def _ensure_password_hash_column(db: AsyncSession) -> None:
+	try:
+		await db.execute(text('ALTER TABLE users ADD COLUMN password_hash VARCHAR'))
+		await db.commit()
+	except Exception:
+		await db.rollback()
 
 
 class RefreshRequest(BaseModel):
@@ -33,6 +43,7 @@ def create_refresh_token(data: dict):
 
 @router.post('/register', response_model=AuthTokenResponse)
 async def register(payload: AuthRegisterRequest, db: AsyncSession = Depends(get_db)):
+	await _ensure_password_hash_column(db)
 	result = await db.execute(select(User).where(User.email == payload.email.lower().strip()))
 	existing = result.scalars().first()
 	if existing:
@@ -57,6 +68,7 @@ async def register(payload: AuthRegisterRequest, db: AsyncSession = Depends(get_
 
 @router.post('/login', response_model=AuthTokenResponse)
 async def login(payload: AuthLoginRequest, db: AsyncSession = Depends(get_db)):
+	await _ensure_password_hash_column(db)
 	result = await db.execute(select(User).where(User.email == payload.email.lower().strip()))
 	user = result.scalars().first()
 	if not user or not user.password_hash:
@@ -101,6 +113,8 @@ async def refresh(payload: RefreshRequest):
 			raise HTTPException(status_code=401, detail='Invalid refresh token')
 		token = create_access_token(data={'sub': sub})
 		return {'access_token': token, 'token_type': 'bearer'}
+	except ExpiredSignatureError:
+		raise HTTPException(status_code=401, detail='Refresh token expired')
 	except JWTError:
 		raise HTTPException(status_code=401, detail='Invalid refresh token')
 

@@ -1,4 +1,5 @@
 from datetime import datetime
+import uuid
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict
 
@@ -16,7 +17,7 @@ class UserCreate(UserBase):
 
 
 class UserResponse(UserBase):
-    id: str
+    id: uuid.UUID
     created_at: datetime
     updated_at: Optional[datetime]
     model_config = ConfigDict(from_attributes=True)
@@ -53,8 +54,8 @@ class PrakritiProfileCreate(PrakritiProfileBase):
 
 
 class PrakritiProfileResponse(PrakritiProfileBase):
-    id: str
-    user_id: str
+    id: uuid.UUID
+    user_id: uuid.UUID
     completed_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
@@ -66,26 +67,26 @@ class RecommendationRequest(BaseModel):
 
 
 class RecommendationResponseFormat(BaseModel):
-    herbs: List[Dict[str, str]]
-    diet: Dict[str, List[Dict[str, str]]]
-    yoga: List[Dict[str, str]]
-    dinacharya: List[Dict[str, str]]
+    herbs: List[Dict[str, Any]]
+    diet: Dict[str, List[Any]]
+    yoga: List[Any]
+    dinacharya: List[Any]
     prevention_30day: str
 
 
 class RecommendationSessionResponse(BaseModel):
-    id: str
-    user_id: str
+    id: uuid.UUID
+    user_id: uuid.UUID
     symptoms: List[str]
     season: str
-    response_json: RecommendationResponseFormat
+    response_json: Dict[str, Any]
     prevention_plan: Optional[str] = None
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 
 class DistrictRiskResponse(BaseModel):
-    id: str
+    id: uuid.UUID
     state_code: str
     state_name: str
     risk_score: float

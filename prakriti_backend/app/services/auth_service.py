@@ -1,21 +1,19 @@
 import uuid
 from datetime import datetime, timedelta
 
+import bcrypt
 from jose import jwt
-from passlib.context import CryptContext
 
 from app.config import settings
 
 
 class AuthService:
-    def __init__(self):
-        self._pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
-
     def hash_password(self, password: str) -> str:
-        return self._pwd_context.hash(password)
+        password_bytes = password.encode('utf-8')[:72]
+        return bcrypt.hashpw(password_bytes, bcrypt.gensalt()).decode('utf-8')
 
     def verify_password(self, plain_password: str, password_hash: str) -> bool:
-        return self._pwd_context.verify(plain_password, password_hash)
+        return bcrypt.checkpw(plain_password.encode('utf-8')[:72], password_hash.encode('utf-8'))
 
     def create_access_token(self, data: dict) -> str:
         payload = data.copy()
