@@ -1,11 +1,12 @@
 fastapi
-uvicorn
+uvicorn[standard]
 sqlalchemy[asyncio]
 asyncpg
+aiosqlite
 greenlet
 pydantic
 pydantic-settings
-redis
+redis[hiredis]
 firebase-admin
 anthropic
 python-jose[cryptography]
@@ -14,3 +15,5 @@ python-multipart
 fpdf2
 httpx
 alembic
+path-lib
+python-dotenv\n
