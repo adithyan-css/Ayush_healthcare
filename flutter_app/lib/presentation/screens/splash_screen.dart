@@ -18,6 +18,14 @@ class _SplashScreenState extends State<SplashScreen> {
 	bool _authResolved = false;
 	AuthState? _lastState;
 
+	void _onAuthState(AuthState state) {
+		if (state is AuthAuthenticated || state is AuthUnauthenticated) {
+			_authResolved = true;
+			_lastState = state;
+			_handleNavigation();
+		}
+	}
+
 	@override
 	void initState() {
 		super.initState();
@@ -25,7 +33,14 @@ class _SplashScreenState extends State<SplashScreen> {
 			if (!_delayCompleter.isCompleted) _delayCompleter.complete();
 			_handleNavigation();
 		});
-		context.read<AuthCubit>().checkAuthStatus();
+
+		WidgetsBinding.instance.addPostFrameCallback((_) {
+			if (!mounted) return;
+			_onAuthState(context.read<AuthCubit>().state);
+			if (!_authResolved) {
+				context.read<AuthCubit>().checkAuthStatus();
+			}
+		});
 	}
 
 	Future<void> _handleNavigation() async {
@@ -51,11 +66,7 @@ class _SplashScreenState extends State<SplashScreen> {
 		return Scaffold(
 			body: BlocListener<AuthCubit, AuthState>(
 				listener: (context, state) {
-					if (state is AuthAuthenticated || state is AuthUnauthenticated) {
-						_authResolved = true;
-						_lastState = state;
-						_handleNavigation();
-					}
+					_onAuthState(state);
 				},
 				child: Container(
 					decoration: BoxDecoration(
