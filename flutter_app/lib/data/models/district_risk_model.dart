@@ -23,6 +23,21 @@ class DistrictRiskModel {
 		required this.longitude,
 	});
 
+	static Map<String, dynamic> _normalizeMonthlyCases(dynamic raw) {
+		if (raw is Map<String, dynamic>) {
+			return raw;
+		}
+		if (raw is List) {
+			return {
+				'values': raw,
+			};
+		}
+		if (raw is Map) {
+			return raw.map((key, value) => MapEntry(key.toString(), value));
+		}
+		return {};
+	}
+
 	factory DistrictRiskModel.fromJson(Map<String, dynamic> json) {
 		return DistrictRiskModel(
 			stateId: json['state_code']?.toString() ?? json['stateId']?.toString() ?? '',
@@ -31,7 +46,7 @@ class DistrictRiskModel {
 			riskLevel: json['risk_level']?.toString() ?? json['riskLevel']?.toString() ?? 'low',
 			topCondition: json['top_condition']?.toString() ?? json['topCondition']?.toString() ?? '',
 			trend: json['trend']?.toString() ?? 'stable',
-			monthlyCases: Map<String, dynamic>.from(json['monthly_cases'] ?? json['monthlyCases'] ?? {}),
+			monthlyCases: _normalizeMonthlyCases(json['monthly_cases'] ?? json['monthlyCases']),
 			ayushTips: (json['ayush_tips'] as List<dynamic>? ??
 							['Hydrate with warm water', 'Follow seasonal diet', 'Practice daily pranayama'])
 					.map((e) => e.toString())

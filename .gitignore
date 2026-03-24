@@ -1,0 +1,27 @@
+# Global secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+**/__pycache__/
+*.py[cod]
+
+# Flutter / Dart artifacts
+**/.dart_tool/
+**/.flutter-plugins-dependencies
+**/build/
+
+# Android local/private config
+**/local.properties
+**/key.properties
+**/*.jks
+**/*.keystore
+
+# IDE / OS
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db

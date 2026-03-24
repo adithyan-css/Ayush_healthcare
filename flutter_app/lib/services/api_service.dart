@@ -55,31 +55,3 @@ class ApiService {
     return response.data;
   }
 }
-import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
-class ApiService {
-  final Dio dio = Dio(BaseOptions(baseUrl: 'http://10.0.2.2:8000/api/v1'));
-  final _storage = const FlutterSecureStorage();
-
-  ApiService() {
-    dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = await _storage.read(key: 'jwt'); 
-        if (token != null) options.headers['Authorization'] = 'Bearer $token';
-        return handler.next(options);
-      },
-      onError: (e, handler) async {
-        if (e.response?.statusCode == 401) {
-          await _storage.delete(key: 'jwt');
-        }
-        return handler.next(e);
-      }
-    ));
-  }
-
-  Future<Response> get(String path) => dio.get(path);
-  Future<Response> post(String path, dynamic data) => dio.post(path, data: data);
-  Future<Response> put(String path, dynamic data) => dio.put(path, data: data);
-  Future<Response> delete(String path) => dio.delete(path);
-}

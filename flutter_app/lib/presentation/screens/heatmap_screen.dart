@@ -3,162 +3,218 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+
 import '../cubits/heatmap_cubit.dart';
 
 class HeatmapScreen extends StatefulWidget {
-	const HeatmapScreen({super.key});
+  const HeatmapScreen({super.key});
 
-	@override
-	State<HeatmapScreen> createState() => _HeatmapScreenState();
+  @override
+  State<HeatmapScreen> createState() => _HeatmapScreenState();
 }
 
 class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProviderStateMixin {
-	late final AnimationController _pulseController;
-	String _condition = 'all';
-	Set<String> _season = {'all'};
+  late final AnimationController _pulseController;
 
-	@override
-	void initState() {
-		super.initState();
-		_pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat(reverse: true);
-		context.read<HeatmapCubit>().loadHeatmapData();
-	}
+  String _selectedCondition = 'All';
+  String _selectedSeason = 'All';
+  List<Map<String, dynamic>> _allDistricts = <Map<String, dynamic>>[];
 
-	@override
-	void dispose() {
-		_pulseController.dispose();
-		super.dispose();
-	}
+  static const List<String> _conditionOptions = <String>[
+    'All',
+    'Respiratory',
+    'Digestive',
+    'Fever-Viral',
+    'Skin',
+    'Joint',
+  ];
 
-	Color _riskColor(String level) {
-		switch (level.toLowerCase()) {
-			case 'critical':
-				return Colors.red;
-			case 'high':
-				return Colors.orange;
-			case 'medium':
-				return Colors.yellow.shade700;
-			default:
-				return Colors.green;
-		}
-	}
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    context.read<HeatmapCubit>().loadHeatmapData();
+  }
 
-	@override
-	Widget build(BuildContext context) {
-		return Scaffold(
-			appBar: AppBar(title: const Text('Disease Heatmap')),
-			body: BlocBuilder<HeatmapCubit, HeatmapState>(
-				builder: (context, state) {
-					final districts = state is HeatmapLoaded
-							? state.districts
-							: state is StateSelected
-									? [state.detail]
-									: <dynamic>[];
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
-					return Stack(
-						children: [
-							FlutterMap(
-								options: const MapOptions(
-									initialCenter: LatLng(20.5937, 78.9629),
-									initialZoom: 4.5,
-								),
-								children: [
-									TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
-									MarkerLayer(
-										markers: districts.map((raw) {
-											final d = Map<String, dynamic>.from(raw as Map);
-											final risk = d['risk_level']?.toString() ?? 'low';
-											final rising = (d['trend']?.toString() ?? '').toLowerCase() == 'rising';
-											final lat = (d['latitude'] ?? 20.5937).toDouble();
-											final lng = (d['longitude'] ?? 78.9629).toDouble();
-											final color = _riskColor(risk);
+  Color _riskColor(String level) {
+    switch (level.toLowerCase()) {
+      case 'critical':
+        return Colors.red.withOpacity(0.7);
+      case 'high':
+        return Colors.orange.withOpacity(0.6);
+      case 'medium':
+        return Colors.yellow.shade700.withOpacity(0.5);
+      default:
+        return Colors.green.withOpacity(0.4);
+    }
+  }
 
-											return Marker(
-												point: LatLng(lat, lng),
-												width: 36,
-												height: 36,
-												child: GestureDetector(
-													onTap: () async {
-														final id = d['state_code']?.toString() ?? 'MH';
-														await context.read<HeatmapCubit>().selectState(id);
-														if (context.mounted) context.go('/state-detail', extra: id);
-													},
-													child: AnimatedBuilder(
-														animation: _pulseController,
-														builder: (context, _) {
-															final scale = rising ? (1 + (_pulseController.value * 0.4)) : 1.0;
-															return Transform.scale(
-																scale: scale,
-																child: Container(
-																	decoration: BoxDecoration(
-																		shape: BoxShape.circle,
-																		color: color.withOpacity(0.85),
-																		border: Border.all(color: Colors.white, width: 2),
-																	),
-																),
-															);
-														},
-													),
-												),
-											);
-										}).toList(),
-									),
-								],
-							),
-							if (state is HeatmapLoading) const Center(child: CircularProgressIndicator()),
-							Align(
-								alignment: Alignment.bottomCenter,
-								child: Container(
-									decoration: BoxDecoration(
-										color: Colors.white,
-										borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-										boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
-									),
-									padding: const EdgeInsets.all(12),
-									child: Row(
-										children: [
-											Expanded(
-												child: DropdownButtonFormField<String>(
-													value: _condition,
-													decoration: const InputDecoration(labelText: 'Condition'),
-													items: const [
-														DropdownMenuItem(value: 'all', child: Text('All')),
-														DropdownMenuItem(value: 'Fever/Viral', child: Text('Fever/Viral')),
-														DropdownMenuItem(value: 'Respiratory', child: Text('Respiratory')),
-														DropdownMenuItem(value: 'Digestive', child: Text('Digestive')),
-														DropdownMenuItem(value: 'Joint', child: Text('Joint')),
-														DropdownMenuItem(value: 'Skin', child: Text('Skin')),
-													],
-													onChanged: (v) {
-														setState(() => _condition = v ?? 'all');
-														context.read<HeatmapCubit>().applyFilter(_condition, _season.first);
-													},
-												),
-											),
-											const SizedBox(width: 8),
-											Expanded(
-												child: SegmentedButton<String>(
-													segments: const [
-														ButtonSegment(value: 'all', label: Text('All')),
-														ButtonSegment(value: 'summer', label: Text('Summer')),
-														ButtonSegment(value: 'monsoon', label: Text('Monsoon')),
-														ButtonSegment(value: 'winter', label: Text('Winter')),
-													],
-													selected: _season,
-													onSelectionChanged: (v) {
-														setState(() => _season = v);
-														context.read<HeatmapCubit>().applyFilter(_condition, _season.first);
-													},
-												),
-											),
-										],
-									),
-								),
-							),
-						],
-					);
-				},
-			),
-		);
-	}
+  String _normalizeCondition(String value) {
+    if (value.toLowerCase() == 'fever-viral') {
+      return 'fever/viral';
+    }
+    return value.toLowerCase();
+  }
+
+  List<Map<String, dynamic>> _filteredDistricts() {
+    return _allDistricts.where((Map<String, dynamic> district) {
+      final String topCondition = (district['top_condition'] ?? '').toString().toLowerCase();
+      final Map<String, dynamic> seasons = district['seasons_map'] is Map
+          ? Map<String, dynamic>.from(district['seasons_map'] as Map)
+          : <String, dynamic>{};
+
+      final bool conditionOk = _selectedCondition == 'All' || topCondition == _normalizeCondition(_selectedCondition);
+      final bool seasonOk = _selectedSeason == 'All' || seasons.containsKey(_selectedSeason.toLowerCase());
+
+      return conditionOk && seasonOk;
+    }).toList(growable: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Disease Heatmap')),
+      body: BlocBuilder<HeatmapCubit, HeatmapState>(
+        builder: (BuildContext context, HeatmapState state) {
+          if (state is HeatmapLoaded) {
+            _allDistricts = List<Map<String, dynamic>>.from(state.districts);
+          }
+
+          final List<Map<String, dynamic>> districts = _filteredDistricts();
+
+          return Stack(
+            children: <Widget>[
+              FlutterMap(
+                options: const MapOptions(
+                  initialCenter: LatLng(20.5937, 78.9629),
+                  initialZoom: 5,
+                ),
+                children: <Widget>[
+                  TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                  AnimatedBuilder(
+                    animation: _pulseController,
+                    builder: (_, __) {
+                      return CircleLayer(
+                        circles: districts.map((Map<String, dynamic> district) {
+                          final double lat = (district['latitude'] as num?)?.toDouble() ?? 20.5937;
+                          final double lng = (district['longitude'] as num?)?.toDouble() ?? 78.9629;
+                          final bool rising = (district['trend'] ?? '').toString().toLowerCase() == 'rising';
+                          final double radius = rising ? (40 + (_pulseController.value * 15)) : 40;
+
+                          return CircleMarker(
+                            point: LatLng(lat, lng),
+                            radius: radius,
+                            color: _riskColor((district['risk_level'] ?? 'low').toString()),
+                            borderStrokeWidth: 1.3,
+                            borderColor: Colors.white70,
+                          );
+                        }).toList(growable: false),
+                      );
+                    },
+                  ),
+                  MarkerLayer(
+                    markers: districts.map((Map<String, dynamic> district) {
+                      final double lat = (district['latitude'] as num?)?.toDouble() ?? 20.5937;
+                      final double lng = (district['longitude'] as num?)?.toDouble() ?? 78.9629;
+                      final String stateCode = (district['state_code'] ?? '').toString();
+
+                      return Marker(
+                        point: LatLng(lat, lng),
+                        width: 90,
+                        height: 90,
+                        child: GestureDetector(
+                          onTap: () {
+                            context.push('/state-detail', extra: stateCode);
+                          },
+                          child: const SizedBox.expand(),
+                        ),
+                      );
+                    }).toList(growable: false),
+                  ),
+                ],
+              ),
+              if (state is HeatmapLoading)
+                const Center(child: CircularProgressIndicator()),
+              if (state is HeatmapError)
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    margin: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(state.msg),
+                  ),
+                ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  height: 80,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 10),
+                    ],
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedCondition,
+                          isDense: true,
+                          decoration: const InputDecoration(labelText: 'Condition'),
+                          items: _conditionOptions
+                              .map((String option) => DropdownMenuItem<String>(value: option, child: Text(option)))
+                              .toList(),
+                          onChanged: (String? value) {
+                            if (value == null) {
+                              return;
+                            }
+                            setState(() {
+                              _selectedCondition = value;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SegmentedButton<String>(
+                          segments: const <ButtonSegment<String>>[
+                            ButtonSegment<String>(value: 'All', label: Text('All')),
+                            ButtonSegment<String>(value: 'Winter', label: Text('Winter')),
+                            ButtonSegment<String>(value: 'Summer', label: Text('Summer')),
+                            ButtonSegment<String>(value: 'Monsoon', label: Text('Monsoon')),
+                            ButtonSegment<String>(value: 'Autumn', label: Text('Autumn')),
+                          ],
+                          selected: <String>{_selectedSeason},
+                          onSelectionChanged: (Set<String> value) {
+                            setState(() {
+                              _selectedSeason = value.first;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }

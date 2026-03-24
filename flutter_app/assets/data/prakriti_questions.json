@@ -1,24 +1,92 @@
 [
-  {"id":1,"question":"My body frame is...","options":[{"text":"Thin, find it hard to gain weight","dosha":"vata"},{"text":"Medium, gain/lose weight easily","dosha":"pitta"},{"text":"Broad, sturdy, gain weight easily","dosha":"kapha"}]},
-  {"id":2,"question":"My skin type is...","options":[{"text":"Dry, rough, or tending to crack","dosha":"vata"},{"text":"Warm, oily, prone to acne or redness","dosha":"pitta"},{"text":"Thick, moist, smooth or shiny","dosha":"kapha"}]},
-  {"id":3,"question":"Regarding my appetite...","options":[{"text":"Variable, irregular, sometimes skip meals","dosha":"vata"},{"text":"Strong, sharp, irritable if hungry","dosha":"pitta"},{"text":"Steady, slow, can easily skip a meal","dosha":"kapha"}]},
-  {"id":4,"question":"My preferred weather is...","options":[{"text":"Warm and moist","dosha":"vata"},{"text":"Cool and dry","dosha":"pitta"},{"text":"Warm and dry","dosha":"kapha"}]},
-  {"id":5,"question":"My energy patterns are...","options":[{"text":"Bursts of energy followed by fatigue","dosha":"vata"},{"text":"Steady moderate to high energy","dosha":"pitta"},{"text":"Slow to start but enduring stamina","dosha":"kapha"}]},
-  {"id":6,"question":"My typical stress response is...","options":[{"text":"Anxiety, worry, racing thoughts","dosha":"vata"},{"text":"Frustration, anger, irritability","dosha":"pitta"},{"text":"Withdrawal, stubbornness, slow to react","dosha":"kapha"}]},
-  {"id":7,"question":"How is your sleep...","options":[{"text":"Light, easily interrupted, insomnia-prone","dosha":"vata"},{"text":"Moderate, fall back asleep easily","dosha":"pitta"},{"text":"Deep, heavy, hard to wake up early","dosha":"kapha"}]},
-  {"id":8,"question":"Your digestion typically involves...","options":[{"text":"Gas, bloating, occasional constipation","dosha":"vata"},{"text":"Acidity, heartburn, loose stools","dosha":"pitta"},{"text":"Sluggishness, heaviness after eating","dosha":"kapha"}]},
-  {"id":9,"question":"Your memory works best by...","options":[{"text":"Grasping quickly but forgetting quickly","dosha":"vata"},{"text":"Sharp, good at logical recall","dosha":"pitta"},{"text":"Slow to learn but retains forever","dosha":"kapha"}]},
-  {"id":10,"question":"Your typical speech pattern is...","options":[{"text":"Fast, talkative, jumps topics","dosha":"vata"},{"text":"Clear, precise, organized","dosha":"pitta"},{"text":"Slow, rhythmic, sweet, thoughtful","dosha":"kapha"}]}
-]
-[
-  {"id":1,"question":"My body frame is...","options":[{"text":"Thin, find it hard to gain weight","dosha":"vata"},{"text":"Medium, gain/lose weight easily","dosha":"pitta"},{"text":"Broad, sturdy, gain weight easily","dosha":"kapha"}]},
-  {"id":2,"question":"My skin type currently is...","options":[{"text":"Dry, rough, or tending to crack","dosha":"vata"},{"text":"Warm, oily, prone to acne or redness","dosha":"pitta"},{"text":"Thick, moist, smooth or shiny","dosha":"kapha"}]},
-  {"id":3,"question":"Regarding my appetite...","options":[{"text":"Variable, irregular, sometimes skip meals","dosha":"vata"},{"text":"Strong, sharp, get irritable if hungry","dosha":"pitta"},{"text":"Steady, slow, can easily skip a meal","dosha":"kapha"}]},
-  {"id":4,"question":"My preferred weather is...","options":[{"text":"Warm and moist","dosha":"vata"},{"text":"Cool and dry","dosha":"pitta"},{"text":"Warm and dry","dosha":"kapha"}]},
-  {"id":5,"question":"My energy patterns are...","options":[{"text":"Bursts of high energy followed by fatigue","dosha":"vata"},{"text":"Steady, moderate to high energy","dosha":"pitta"},{"text":"Slow to start, but enduring stamina","dosha":"kapha"}]},
-  {"id":6,"question":"My typical stress response is...","options":[{"text":"Anxiety, worry, racing thoughts","dosha":"vata"},{"text":"Frustration, anger, irritability","dosha":"pitta"},{"text":"Withdrawal, stubbornness, slow to react","dosha":"kapha"}]},
-  {"id":7,"question":"How is your sleep...","options":[{"text":"Light, easily interrupted, insomnia-prone","dosha":"vata"},{"text":"Moderate, but fall back asleep easily","dosha":"pitta"},{"text":"Deep, heavy, hard to wake up early","dosha":"kapha"}]},
-  {"id":8,"question":"Your digestion typically involves...","options":[{"text":"Gas, bloating, occasional constipation","dosha":"vata"},{"text":"Acidity, heartburn, loose stools","dosha":"pitta"},{"text":"Sluggishness, heaviness after eating","dosha":"kapha"}]},
-  {"id":9,"question":"Your memory works best by...","options":[{"text":"Grasping quickly but forgetting quickly","dosha":"vata"},{"text":"Sharp, good at logical recall","dosha":"pitta"},{"text":"Slow to learn, but retains forever","dosha":"kapha"}]},
-  {"id":10,"question":"Your typical speech pattern is...","options":[{"text":"Fast, talkative, tending to jump topics","dosha":"vata"},{"text":"Clear, precise, organized, occasionally sharp","dosha":"pitta"},{"text":"Slow, rhythmic, sweet, thoughtful","dosha":"kapha"}]}
+  {
+    "id": 1,
+    "question": "My body frame is...",
+    "options": [
+      {"text": "Thin, find it hard to gain weight", "dosha": "vata"},
+      {"text": "Medium, gain/lose weight easily", "dosha": "pitta"},
+      {"text": "Broad, sturdy, gain weight easily", "dosha": "kapha"}
+    ]
+  },
+  {
+    "id": 2,
+    "question": "My skin type is...",
+    "options": [
+      {"text": "Dry, rough, or tending to crack", "dosha": "vata"},
+      {"text": "Warm, oily, prone to acne or redness", "dosha": "pitta"},
+      {"text": "Thick, moist, smooth or shiny", "dosha": "kapha"}
+    ]
+  },
+  {
+    "id": 3,
+    "question": "Regarding my appetite...",
+    "options": [
+      {"text": "Variable, irregular, sometimes skip meals", "dosha": "vata"},
+      {"text": "Strong, sharp, irritable if hungry", "dosha": "pitta"},
+      {"text": "Steady, slow, can easily skip a meal", "dosha": "kapha"}
+    ]
+  },
+  {
+    "id": 4,
+    "question": "My preferred weather is...",
+    "options": [
+      {"text": "Warm and moist", "dosha": "vata"},
+      {"text": "Cool and dry", "dosha": "pitta"},
+      {"text": "Warm and dry", "dosha": "kapha"}
+    ]
+  },
+  {
+    "id": 5,
+    "question": "My energy patterns are...",
+    "options": [
+      {"text": "Bursts of energy followed by fatigue", "dosha": "vata"},
+      {"text": "Steady moderate to high energy", "dosha": "pitta"},
+      {"text": "Slow to start but enduring stamina", "dosha": "kapha"}
+    ]
+  },
+  {
+    "id": 6,
+    "question": "My typical stress response is...",
+    "options": [
+      {"text": "Anxiety, worry, racing thoughts", "dosha": "vata"},
+      {"text": "Frustration, anger, irritability", "dosha": "pitta"},
+      {"text": "Withdrawal, stubbornness, slow to react", "dosha": "kapha"}
+    ]
+  },
+  {
+    "id": 7,
+    "question": "How is your sleep...",
+    "options": [
+      {"text": "Light, easily interrupted, insomnia-prone", "dosha": "vata"},
+      {"text": "Moderate, fall back asleep easily", "dosha": "pitta"},
+      {"text": "Deep, heavy, hard to wake up early", "dosha": "kapha"}
+    ]
+  },
+  {
+    "id": 8,
+    "question": "Your digestion typically involves...",
+    "options": [
+      {"text": "Gas, bloating, occasional constipation", "dosha": "vata"},
+      {"text": "Acidity, heartburn, loose stools", "dosha": "pitta"},
+      {"text": "Sluggishness, heaviness after eating", "dosha": "kapha"}
+    ]
+  },
+  {
+    "id": 9,
+    "question": "Your memory works best by...",
+    "options": [
+      {"text": "Grasping quickly but forgetting quickly", "dosha": "vata"},
+      {"text": "Sharp, good at logical recall", "dosha": "pitta"},
+      {"text": "Slow to learn but retains forever", "dosha": "kapha"}
+    ]
+  },
+  {
+    "id": 10,
+    "question": "Your typical speech pattern is...",
+    "options": [
+      {"text": "Fast, talkative, jumps topics", "dosha": "vata"},
+      {"text": "Clear, precise, organized", "dosha": "pitta"},
+      {"text": "Slow, rhythmic, sweet, thoughtful", "dosha": "kapha"}
+    ]
+  }
 ]

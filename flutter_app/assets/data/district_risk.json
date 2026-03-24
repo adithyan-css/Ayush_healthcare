@@ -1,0 +1,222 @@
+[
+  {
+    "state_code": "MH",
+    "state_name": "Maharashtra",
+    "risk_score": 72,
+    "risk_level": "high",
+    "top_condition": "Fever/Viral",
+    "trend": "rising",
+    "monthly_cases": [120, 135, 148, 162, 178, 195],
+    "latitude": 19.7515,
+    "longitude": 75.7139,
+    "seasons_map": {
+      "winter": "Respiratory",
+      "summer": "Digestive",
+      "monsoon": "Fever/Viral",
+      "autumn": "Joint"
+    },
+    "ayush_tips": [
+      "Drink Guduchi (Giloy) decoction daily to support immune resilience",
+      "Use warm, freshly cooked food and avoid refrigerated leftovers during monsoon",
+      "Practice Nadi Shodhana Pranayama for 15 minutes each morning"
+    ]
+  },
+  {
+    "state_code": "DL",
+    "state_name": "Delhi",
+    "risk_score": 85,
+    "risk_level": "critical",
+    "top_condition": "Respiratory",
+    "trend": "rising",
+    "monthly_cases": [200, 220, 245, 268, 290, 315],
+    "latitude": 28.7041,
+    "longitude": 77.1025,
+    "seasons_map": {
+      "winter": "Respiratory",
+      "summer": "Digestive",
+      "monsoon": "Fever/Viral",
+      "autumn": "Joint"
+    },
+    "ayush_tips": [
+      "Do daily steam inhalation with ajwain or tulsi leaves",
+      "Perform Anulom Vilom in clean indoor air to improve lung capacity",
+      "Sip warm turmeric milk at night to soothe throat irritation"
+    ]
+  },
+  {
+    "state_code": "TN",
+    "state_name": "Tamil Nadu",
+    "risk_score": 58,
+    "risk_level": "medium",
+    "top_condition": "Digestive",
+    "trend": "stable",
+    "monthly_cases": [90, 88, 92, 95, 91, 94],
+    "latitude": 11.1271,
+    "longitude": 78.6569,
+    "seasons_map": {
+      "winter": "Respiratory",
+      "summer": "Digestive",
+      "monsoon": "Fever/Viral",
+      "autumn": "Joint"
+    },
+    "ayush_tips": [
+      "Drink jeera-dhaniya-fennel infused warm water after meals",
+      "Prefer light meals with ginger and black pepper to kindle Agni",
+      "Take buttermilk with roasted cumin at lunch for digestion support"
+    ]
+  },
+  {
+    "state_code": "KA",
+    "state_name": "Karnataka",
+    "risk_score": 45,
+    "risk_level": "medium",
+    "top_condition": "Digestive",
+    "trend": "falling",
+    "monthly_cases": [110, 102, 98, 91, 88, 85],
+    "latitude": 15.3173,
+    "longitude": 75.7139,
+    "seasons_map": {
+      "winter": "Respiratory",
+      "summer": "Digestive",
+      "monsoon": "Fever/Viral",
+      "autumn": "Joint"
+    },
+    "ayush_tips": [
+      "Use trikatu in small quantity before meals under guidance",
+      "Avoid overeating curd at night to prevent Ama formation",
+      "Maintain regular meal timing and include warm soups"
+    ]
+  },
+  {
+    "state_code": "KL",
+    "state_name": "Kerala",
+    "risk_score": 38,
+    "risk_level": "low",
+    "top_condition": "Skin",
+    "trend": "stable",
+    "monthly_cases": [60, 58, 62, 59, 61, 60],
+    "latitude": 10.8505,
+    "longitude": 76.2711,
+    "seasons_map": {
+      "winter": "Respiratory",
+      "summer": "Digestive",
+      "monsoon": "Fever/Viral",
+      "autumn": "Joint"
+    },
+    "ayush_tips": [
+      "Apply neem and turmeric paste locally for minor skin irritation",
+      "Prefer bitter vegetables and reduce excess fried food",
+      "Practice Sheetali breathing to reduce heat-related skin flare-ups"
+    ]
+  },
+  {
+    "state_code": "RJ",
+    "state_name": "Rajasthan",
+    "risk_score": 62,
+    "risk_level": "high",
+    "top_condition": "Joint",
+    "trend": "stable",
+    "monthly_cases": [95, 98, 100, 102, 99, 101],
+    "latitude": 27.0238,
+    "longitude": 74.2179,
+    "seasons_map": {
+      "winter": "Respiratory",
+      "summer": "Digestive",
+      "monsoon": "Fever/Viral",
+      "autumn": "Joint"
+    },
+    "ayush_tips": [
+      "Abhyanga with warm sesame oil helps reduce Vata-related stiffness",
+      "Use dry ginger and ajwain in diet for joint comfort",
+      "Do gentle Surya Namaskar and joint mobility exercises daily"
+    ]
+  },
+  {
+    "state_code": "UP",
+    "state_name": "Uttar Pradesh",
+    "risk_score": 78,
+    "risk_level": "high",
+    "top_condition": "Fever/Viral",
+    "trend": "rising",
+    "monthly_cases": [180, 192, 205, 218, 230, 248],
+    "latitude": 26.8467,
+    "longitude": 80.9462,
+    "seasons_map": {
+      "winter": "Respiratory",
+      "summer": "Digestive",
+      "monsoon": "Fever/Viral",
+      "autumn": "Joint"
+    },
+    "ayush_tips": [
+      "Consume tulsi-ginger herbal tea once daily during seasonal outbreaks",
+      "Keep drinking water boiled and cooled to reduce infection risk",
+      "Use adequate sleep and early dinner to strengthen immunity"
+    ]
+  },
+  {
+    "state_code": "WB",
+    "state_name": "West Bengal",
+    "risk_score": 68,
+    "risk_level": "high",
+    "top_condition": "Fever/Viral",
+    "trend": "rising",
+    "monthly_cases": [140, 148, 155, 162, 170, 180],
+    "latitude": 22.9868,
+    "longitude": 87.855,
+    "seasons_map": {
+      "winter": "Respiratory",
+      "summer": "Digestive",
+      "monsoon": "Fever/Viral",
+      "autumn": "Joint"
+    },
+    "ayush_tips": [
+      "Take amla and giloy support in routine under AYUSH guidance",
+      "Avoid damp clothing and maintain personal hygiene during rains",
+      "Practice Bhramari Pranayama to reduce stress and improve resilience"
+    ]
+  },
+  {
+    "state_code": "GJ",
+    "state_name": "Gujarat",
+    "risk_score": 52,
+    "risk_level": "medium",
+    "top_condition": "Digestive",
+    "trend": "stable",
+    "monthly_cases": [88, 90, 87, 92, 89, 91],
+    "latitude": 22.2587,
+    "longitude": 71.1924,
+    "seasons_map": {
+      "winter": "Respiratory",
+      "summer": "Digestive",
+      "monsoon": "Fever/Viral",
+      "autumn": "Joint"
+    },
+    "ayush_tips": [
+      "Chew small fennel seeds after meals to reduce bloating",
+      "Avoid excessive fermented and oily street food in hot weather",
+      "Use warm water with lemon in the morning for digestive balance"
+    ]
+  },
+  {
+    "state_code": "PB",
+    "state_name": "Punjab",
+    "risk_score": 44,
+    "risk_level": "low",
+    "top_condition": "Respiratory",
+    "trend": "falling",
+    "monthly_cases": [75, 72, 70, 68, 65, 63],
+    "latitude": 31.1471,
+    "longitude": 75.3412,
+    "seasons_map": {
+      "winter": "Respiratory",
+      "summer": "Digestive",
+      "monsoon": "Fever/Viral",
+      "autumn": "Joint"
+    },
+    "ayush_tips": [
+      "Use sitopaladi churna with honey as advised for seasonal cough",
+      "Perform Jal Neti only under trained guidance for sinus hygiene",
+      "Keep chest warm in winter and avoid sudden cold exposure"
+    ]
+  }
+]

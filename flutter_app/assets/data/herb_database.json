@@ -1,0 +1,29 @@
+[
+  {
+    "id": "giloy",
+    "name": "Guduchi (Giloy)",
+    "sanskrit_name": "Guduchi",
+    "dosha_support": ["vata", "pitta", "kapha"],
+    "uses": ["Immune support", "Seasonal fever support"],
+    "form": "decoction",
+    "caution": "Use under qualified practitioner guidance if pregnant or on medication"
+  },
+  {
+    "id": "tulsi",
+    "name": "Tulsi",
+    "sanskrit_name": "Tulasi",
+    "dosha_support": ["kapha", "vata"],
+    "uses": ["Respiratory support", "Daily wellness"],
+    "form": "tea",
+    "caution": "Use moderate amounts in people with high pitta sensitivity"
+  },
+  {
+    "id": "ashwagandha",
+    "name": "Ashwagandha",
+    "sanskrit_name": "Ashvagandha",
+    "dosha_support": ["vata", "kapha"],
+    "uses": ["Stress support", "Sleep quality support"],
+    "form": "powder",
+    "caution": "Avoid self-medication in hyperthyroid conditions"
+  }
+]

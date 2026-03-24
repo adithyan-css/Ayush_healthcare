@@ -1,84 +1,134 @@
 import base64
+from datetime import datetime
+from pathlib import Path
+import re
 from fpdf import FPDF
 
 
 class PDFService:
-    def generate_bulletin(self, district_name, risk_level, risk_score, top_conditions, xai_reasons, seasonal_advisory):
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font('Arial', size=16, style='B')
-        pdf.cell(200, 10, txt='PrakritiOS Health Bulletin', ln=1, align='C')
-        pdf.set_font('Arial', size=14, style='B')
-        pdf.cell(200, 10, txt=f'District: {district_name} | Risk: {risk_level} ({risk_score}/100)', ln=1, align='L')
-        pdf.set_font('Arial', size=12)
-        pdf.cell(200, 10, txt=f"Top Conditions: {', '.join(top_conditions)}", ln=1, align='L')
-        pdf.ln(5)
-        pdf.set_font('Arial', size=12, style='B')
-        pdf.cell(200, 10, txt='AI Reasoning:', ln=1)
-        pdf.set_font('Arial', size=11)
-        for r in xai_reasons:
-            pdf.cell(200, 8, txt=f'- {r}', ln=1)
-        pdf.ln(5)
-        pdf.set_font('Arial', size=12, style='B')
-        pdf.cell(200, 10, txt='Seasonal Advisory:', ln=1)
-        pdf.set_font('Arial', size=11)
-        pdf.multi_cell(0, 10, txt=seasonal_advisory)
-        path = '/tmp/bulletin.pdf'
-        pdf.output(path)
-        with open(path, 'rb') as f:
-            return base64.b64encode(f.read()).decode('utf-8')
+    def _sanitize(self, text: str) -> str:
+        cleaned = re.sub(r'[^\x20-\x7E\n\r\t]', '', str(text))
+        return cleaned.strip()
 
-    def generate_arogya_report(self, user_name, dosha, history):
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font('Arial', size=16, style='B')
-        pdf.cell(200, 10, txt='Arogya Granth — Personal Health Report', ln=1, align='C')
-        pdf.set_font('Arial', size=12)
-        pdf.cell(200, 10, txt=f'Patient: {user_name} | Dominant Dosha: {dosha}', ln=1)
-        path = '/tmp/arogya.pdf'
-        pdf.output(path)
-        with open(path, 'rb') as f:
-            return base64.b64encode(f.read()).decode('utf-8')
-import base64
-import os
-from fpdf import FPDF
-class PDFService:
-    def generate_bulletin(self, district_name, risk_level, risk_score, top_conditions, xai_reasons, seasonal_advisory):
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=16, style='B')
-        pdf.cell(200, 10, txt="PrakritiOS Health Bulletin", ln=1, align='C')
-        pdf.set_font("Arial", size=14, style='B')
-        pdf.cell(200, 10, txt=f"District: {district_name} | Risk: {risk_level} ({risk_score}/100)", ln=1, align='L')
-        pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt=f"Top Conditions: {', '.join(top_conditions)}", ln=1, align='L')
-        pdf.ln(5)
-        pdf.set_font("Arial", size=12, style='B')
-        pdf.cell(200, 10, txt="AI Reasoning:", ln=1)
-        pdf.set_font("Arial", size=11)
-        for r in xai_reasons:
-            pdf.cell(200, 8, txt=f"- {r}", ln=1)
-        pdf.ln(5)
-        pdf.set_font("Arial", size=12, style='B')
-        pdf.cell(200, 10, txt="Seasonal Advisory:", ln=1)
-        pdf.set_font("Arial", size=11)
-        pdf.multi_cell(0, 10, txt=seasonal_advisory)
-        
-        path = "/tmp/bulletin.pdf"
-        os.makedirs("/tmp", exist_ok=True)
-        pdf.output(path)
-        with open(path, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode("utf-8")
-        return b64
+    def _save_to_base64(self, pdf: FPDF, filename: str) -> str:
+        out_dir = Path('/tmp')
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / filename
+        pdf.output(str(out_path))
+        return base64.b64encode(out_path.read_bytes()).decode('utf-8')
 
-    def generate_arogya_report(self, user_name, dosha, history):
+    def generate_bulletin(
+        self,
+        district_name: str,
+        risk_level: str,
+        risk_score: int,
+        top_conditions: list[str],
+        xai_reasons: list[str],
+        seasonal_advisory: str,
+        bulletin_text: str = '',
+    ) -> str:
         pdf = FPDF()
+        pdf.set_margins(15, 15, 15)
         pdf.add_page()
-        pdf.set_font("Arial", size=16, style='B')
-        pdf.cell(200, 10, txt="Arogya Report", ln=1, align='C')
-        path = "/tmp/arogya.pdf"
-        os.makedirs("/tmp", exist_ok=True)
-        pdf.output(path)
-        with open(path, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode("utf-8")
-        return b64
+
+        pdf.set_font('Arial', 'B', 18)
+        pdf.cell(0, 10, self._sanitize('PrakritiOS AYUSH Health Bulletin'), ln=1, align='C')
+        pdf.set_font('Arial', '', 11)
+        pdf.cell(0, 8, self._sanitize(f'District: {district_name} | Date: {datetime.utcnow().date()}'), ln=1)
+
+        pdf.set_fill_color(220, 235, 220)
+        pdf.rect(15, pdf.get_y(), 180, 10, 'F')
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(0, 10, self._sanitize(f'Risk: {risk_level.upper()} ({risk_score}/100)'), ln=1)
+
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(0, 8, 'Top Conditions', ln=1)
+        pdf.set_font('Arial', '', 11)
+        for condition in top_conditions:
+            pdf.cell(0, 7, self._sanitize(f'- {condition}'), ln=1)
+
+        pdf.set_fill_color(230, 240, 250)
+        pdf.rect(15, pdf.get_y(), 180, 9, 'F')
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(0, 9, 'AI Reasoning', ln=1)
+        pdf.set_font('Arial', '', 11)
+        for index, reason in enumerate(xai_reasons, start=1):
+            pdf.multi_cell(0, 6, self._sanitize(f'{index}. {reason}'))
+
+        pdf.set_fill_color(245, 238, 220)
+        pdf.rect(15, pdf.get_y(), 180, 9, 'F')
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(0, 9, 'Seasonal Advisory', ln=1)
+        pdf.set_font('Arial', '', 11)
+        pdf.multi_cell(0, 6, self._sanitize(seasonal_advisory))
+
+        if bulletin_text:
+            pdf.set_font('Arial', 'B', 12)
+            pdf.cell(0, 8, 'Bulletin Summary', ln=1)
+            pdf.set_font('Arial', '', 11)
+            pdf.multi_cell(0, 6, self._sanitize(bulletin_text))
+
+        pdf.set_y(-20)
+        pdf.set_font('Arial', 'I', 9)
+        pdf.cell(0, 10, self._sanitize('Generated by PrakritiOS AI'), align='C')
+        return self._save_to_base64(pdf, 'bulletin.pdf')
+
+    def generate_arogya_report(self, user_name: str, dosha: str, history: list[dict], risk_score: float = 50.0) -> str:
+        pdf = FPDF()
+        pdf.set_margins(15, 15, 15)
+        pdf.add_page()
+        pdf.set_font('Arial', 'B', 17)
+        pdf.cell(0, 10, self._sanitize('Arogya Granth - Personal Health Scripture'), ln=1, align='C')
+
+        pdf.set_fill_color(228, 236, 245)
+        pdf.rect(15, pdf.get_y(), 180, 22, 'F')
+        pdf.set_font('Arial', 'B', 11)
+        pdf.cell(0, 7, self._sanitize(f'Name: {user_name}'), ln=1)
+        pdf.cell(0, 7, self._sanitize(f'Dominant Dosha: {dosha}'), ln=1)
+        pdf.cell(0, 7, self._sanitize(f'Constitutional Risk: {round(risk_score, 1)}/100'), ln=1)
+
+        pdf.ln(3)
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(0, 8, 'Health Journey', ln=1)
+        pdf.set_font('Arial', '', 10)
+        pdf.cell(50, 7, 'Date', 1)
+        pdf.cell(90, 7, 'Symptoms', 1)
+        pdf.cell(50, 7, 'Top Herb', 1, ln=1)
+
+        for row in history[:8]:
+            symptoms = row.get('symptoms', [])
+            if isinstance(symptoms, dict):
+                symptoms = symptoms.get('items', [])
+            herb = row.get('response', {}).get('herbs', [{'name': 'N/A'}])[0].get('name', 'N/A') if isinstance(row.get('response'), dict) else 'N/A'
+            pdf.cell(50, 7, self._sanitize(str(row.get('date', 'NA'))[:10]), 1)
+            pdf.cell(90, 7, self._sanitize(', '.join(symptoms)[:45]), 1)
+            pdf.cell(50, 7, self._sanitize(herb[:25]), 1, ln=1)
+
+        pdf.ln(3)
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(0, 8, 'Dosha Balance', ln=1)
+        bars = {
+            'V': 10 if dosha.lower() == 'vata' else 6,
+            'P': 10 if dosha.lower() == 'pitta' else 6,
+            'K': 10 if dosha.lower() == 'kapha' else 6,
+        }
+        pdf.set_font('Arial', '', 11)
+        pdf.cell(0, 7, self._sanitize(f"V: {'#' * bars['V']}"), ln=1)
+        pdf.cell(0, 7, self._sanitize(f"P: {'#' * bars['P']}"), ln=1)
+        pdf.cell(0, 7, self._sanitize(f"K: {'#' * bars['K']}"), ln=1)
+
+        recommendations = {
+            'vata': 'Keep routine stable, prefer warm meals, and use calming pranayama daily.',
+            'pitta': 'Use cooling foods, avoid excess spice, and include evening relaxation.',
+            'kapha': 'Increase daily movement, avoid heavy cold foods, and use warming spices.',
+        }
+        pdf.ln(2)
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(0, 8, 'Lifestyle Recommendation', ln=1)
+        pdf.set_font('Arial', '', 11)
+        pdf.multi_cell(0, 6, self._sanitize(recommendations.get(dosha.lower(), recommendations['vata'])))
+
+        pdf.set_y(-20)
+        pdf.set_font('Arial', 'I', 9)
+        pdf.cell(0, 10, self._sanitize('Seal of AYUSH AI'), align='C')
+        return self._save_to_base64(pdf, 'arogya_report.pdf')

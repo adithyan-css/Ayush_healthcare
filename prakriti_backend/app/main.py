@@ -1,13 +1,16 @@
+from sqlalchemy import text
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.config import settings
+from app.database import AsyncSessionLocal, init_db
 from app.routers import auth, prakriti, recommendations, heatmap, symptoms, forecast, wearable, vaidya
-from app.database import init_db
 
 app = FastAPI(title='PrakritiOS API', version='1.0.0')
 
 app.add_middleware(
 	CORSMiddleware,
-	allow_origins=['*'],
+	allow_origins=settings.cors_origins_list,
 	allow_credentials=True,
 	allow_methods=['*'],
 	allow_headers=['*'],
@@ -32,3 +35,21 @@ app.include_router(vaidya.router, prefix='/api/v1/vaidya', tags=['Vaidya Copilot
 @app.get('/')
 async def root():
 	return {'status': 'running', 'api': 'PrakritiOS Backend v1'}
+
+
+@app.get('/health')
+async def health():
+	db_ok = False
+	try:
+		async with AsyncSessionLocal() as session:
+			await session.execute(text('SELECT 1'))
+		db_ok = True
+	except Exception:
+		db_ok = False
+
+	status = 'ok' if db_ok else 'degraded'
+	return {
+		'status': status,
+		'environment': settings.ENVIRONMENT,
+		'database': 'connected' if db_ok else 'unavailable',
+	}
