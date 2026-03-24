@@ -46,6 +46,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
 	@override
 	Widget build(BuildContext context) {
+		final colorScheme = Theme.of(context).colorScheme;
+		final textTheme = Theme.of(context).textTheme;
 		return Scaffold(
 			body: BlocListener<AuthCubit, AuthState>(
 				listener: (context, state) {
@@ -55,18 +57,38 @@ class _SplashScreenState extends State<SplashScreen> {
 						_handleNavigation();
 					}
 				},
-				child: Center(
-					child: Column(
-						mainAxisSize: MainAxisSize.min,
+				child: Container(
+					decoration: BoxDecoration(
+						gradient: LinearGradient(
+							begin: Alignment.topLeft,
+							end: Alignment.bottomRight,
+							colors: [colorScheme.primaryContainer, colorScheme.surface],
+						),
+					),
+					child: Stack(
 						children: [
-							Icon(Icons.spa, size: 64, color: Theme.of(context).colorScheme.primary),
-							const SizedBox(height: 12),
-							Text(
-								context.t('app_name'),
-								style: TextStyle(
-									fontSize: 36,
-									fontWeight: FontWeight.bold,
-									color: Theme.of(context).colorScheme.primary,
+							Center(
+								child: Container(
+									width: 260,
+									height: 260,
+									decoration: BoxDecoration(
+										shape: BoxShape.circle,
+										color: colorScheme.primary.withValues(alpha: 0.08),
+									),
+								),
+							),
+							Center(
+								child: Column(
+									mainAxisSize: MainAxisSize.min,
+									children: [
+										CircleAvatar(
+											radius: 38,
+											backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
+											child: Icon(Icons.spa, size: 42, color: colorScheme.primary),
+										),
+										const SizedBox(height: 14),
+										Text(context.t('app_name'), style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+									],
 								),
 							),
 						],

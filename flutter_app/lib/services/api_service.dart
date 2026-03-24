@@ -7,7 +7,7 @@ class ApiService {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await _secureStorage.read(key: 'jwt');
+          final token = await _secureStorage.read(key: 'jwt') ?? HiveService.getJwt();
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
@@ -36,6 +36,14 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
     ),
   );
+
+  Future<void> saveJwt(String token) async {
+    await _secureStorage.write(key: 'jwt', value: token);
+  }
+
+  Future<void> clearJwt() async {
+    await _secureStorage.delete(key: 'jwt');
+  }
 
   Future<dynamic> get(String path, {Map<String, dynamic>? queryParams}) async {
     final response = await _dio.get(path, queryParameters: queryParams);

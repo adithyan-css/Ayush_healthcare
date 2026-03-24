@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../core/i18n/language_map.dart';
 import '../cubits/heatmap_cubit.dart';
 
 class HeatmapScreen extends StatefulWidget {
@@ -48,13 +49,13 @@ class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProvider
   Color _riskColor(String level) {
     switch (level.toLowerCase()) {
       case 'critical':
-        return Colors.red.withOpacity(0.7);
+        return Colors.red.withValues(alpha: 0.7);
       case 'high':
-        return Colors.orange.withOpacity(0.6);
+        return Colors.orange.withValues(alpha: 0.6);
       case 'medium':
-        return Colors.yellow.shade700.withOpacity(0.5);
+        return Colors.yellow.shade700.withValues(alpha: 0.5);
       default:
-        return Colors.green.withOpacity(0.4);
+        return Colors.green.withValues(alpha: 0.4);
     }
   }
 
@@ -81,8 +82,9 @@ class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Disease Heatmap')),
+			appBar: AppBar(title: Text(context.t('disease_heatmap'))),
       body: BlocBuilder<HeatmapCubit, HeatmapState>(
         builder: (BuildContext context, HeatmapState state) {
           if (state is HeatmapLoaded) {
@@ -160,13 +162,13 @@ class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProvider
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Container(
-                  height: 80,
+                  height: 96,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: colorScheme.surface,
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                     boxShadow: <BoxShadow>[
-                      BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 10),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 10),
                     ],
                   ),
                   child: Row(
@@ -175,7 +177,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProvider
                         child: DropdownButtonFormField<String>(
                           value: _selectedCondition,
                           isDense: true,
-                          decoration: const InputDecoration(labelText: 'Condition'),
+                          decoration: InputDecoration(labelText: context.t('condition')),
                           items: _conditionOptions
                               .map((String option) => DropdownMenuItem<String>(value: option, child: Text(option)))
                               .toList(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/i18n/language_map.dart';
 import '../cubits/prakriti_cubit.dart';
 
 class PrakritiQuizScreen extends StatefulWidget {
@@ -28,8 +29,9 @@ class _PrakritiQuizScreenState extends State<PrakritiQuizScreen> {
 
 	@override
 	Widget build(BuildContext context) {
+		final colorScheme = Theme.of(context).colorScheme;
 		return Scaffold(
-			appBar: AppBar(title: const Text('Prakriti Quiz')),
+			appBar: AppBar(title: Text(context.t('prakriti_quiz'))),
 			body: BlocConsumer<PrakritiCubit, PrakritiState>(
 				listener: (context, state) {
 					if (state is PrakritiCompleted) {
@@ -48,8 +50,18 @@ class _PrakritiQuizScreenState extends State<PrakritiQuizScreen> {
 						return Column(
 							children: [
 								Padding(
-									padding: const EdgeInsets.all(16),
-									child: LinearProgressIndicator(value: progress),
+									padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+									child: Column(
+										crossAxisAlignment: CrossAxisAlignment.start,
+										children: [
+											Text(
+												'${context.t('question')} ${state.currentIndex + 1} ${context.t('of')} ${state.questions.length}',
+												style: Theme.of(context).textTheme.labelMedium,
+											),
+											const SizedBox(height: 8),
+											LinearProgressIndicator(value: progress),
+										],
+									),
 								),
 								Expanded(
 									child: PageView.builder(
@@ -61,41 +73,60 @@ class _PrakritiQuizScreenState extends State<PrakritiQuizScreen> {
 											final options = (q['options'] as List).cast<Map<String, dynamic>>();
 											return Padding(
 												padding: const EdgeInsets.all(16),
-												child: Column(
-													crossAxisAlignment: CrossAxisAlignment.start,
-													children: [
-														Text('Q${index + 1}', style: Theme.of(context).textTheme.titleLarge),
-														const SizedBox(height: 8),
-														Text(q['question'].toString(), style: Theme.of(context).textTheme.headlineSmall),
-														const SizedBox(height: 20),
-														...options.map((opt) {
-															final dosha = opt['dosha'].toString();
-															final selected = _selectedByQuestion[index] == dosha;
-															return GestureDetector(
-																onTap: () {
-																	setState(() {
-																		_selectedByQuestion[index] = dosha;
-																	});
-																},
-																child: Card(
-																	color: selected ? Theme.of(context).colorScheme.primaryContainer : null,
-																	child: Padding(
-																		padding: const EdgeInsets.all(14),
+												child: Container(
+													decoration: BoxDecoration(
+														color: colorScheme.surface,
+														borderRadius: BorderRadius.circular(20),
+													),
+													padding: const EdgeInsets.all(16),
+													child: Column(
+														crossAxisAlignment: CrossAxisAlignment.start,
+														children: [
+															Text('Q${index + 1}', style: Theme.of(context).textTheme.titleLarge),
+															const SizedBox(height: 8),
+															Text(q['question'].toString(), style: Theme.of(context).textTheme.headlineSmall),
+															const SizedBox(height: 16),
+															...options.asMap().entries.map((entry) {
+																final opt = entry.value;
+																final dosha = opt['dosha'].toString();
+																final selected = _selectedByQuestion[index] == dosha;
+																final labels = <String>['A', 'B', 'C'];
+																return GestureDetector(
+																	onTap: () {
+																		setState(() {
+																			_selectedByQuestion[index] = dosha;
+																		});
+																	},
+																	child: Container(
+																		margin: const EdgeInsets.only(bottom: 10),
+																		padding: const EdgeInsets.all(12),
+																		decoration: BoxDecoration(
+																			color: selected ? colorScheme.primaryContainer : colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+																			borderRadius: BorderRadius.circular(14),
+																			border: Border.all(
+																				color: selected ? colorScheme.primary : colorScheme.outlineVariant,
+																			),
+																		),
 																		child: Row(
 																			children: [
+																				CircleAvatar(
+																					radius: 12,
+																					backgroundColor: selected ? colorScheme.primary : colorScheme.surfaceContainer,
+																					child: Text(labels[entry.key], style: Theme.of(context).textTheme.labelSmall),
+																				),
+																				const SizedBox(width: 10),
 																				Expanded(child: Text(opt['text'].toString())),
-																				if (selected) const Icon(Icons.check_circle),
+																				if (selected) Icon(Icons.check_circle, color: colorScheme.primary),
 																			],
 																		),
 																	),
-																),
-															);
-														}),
-														const Spacer(),
-														SizedBox(
-															width: double.infinity,
-															child: ElevatedButton(
-																onPressed: _selectedByQuestion[index] == null
+																);
+															}),
+															const Spacer(),
+															SizedBox(
+																width: double.infinity,
+																child: ElevatedButton(
+																	onPressed: _selectedByQuestion[index] == null
 																		? null
 																		: () {
 																				context.read<PrakritiCubit>().answerQuestion(index, _selectedByQuestion[index]!);
@@ -105,10 +136,11 @@ class _PrakritiQuizScreenState extends State<PrakritiQuizScreen> {
 																					context.read<PrakritiCubit>().calculateResult();
 																				}
 																			},
-																child: Text(index == state.questions.length - 1 ? 'See Results' : 'Next'),
+																		child: Text(index == state.questions.length - 1 ? context.t('see_results') : context.t('next')),
+																	),
 															),
-														),
-													],
+														],
+													),
 												),
 											);
 										},

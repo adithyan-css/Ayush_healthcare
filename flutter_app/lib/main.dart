@@ -43,7 +43,7 @@ Future<void> main() async {
   await Hive.openBox('nadiReadings');
 
   HydratedBloc.storage = await HydratedStorage.build(
-    storageDirectory: HydratedStorageDirectory((await getApplicationDocumentsDirectory()).path),
+    storageDirectory: await getApplicationDocumentsDirectory(),
   );
 
   runApp(const PrakritiApp());

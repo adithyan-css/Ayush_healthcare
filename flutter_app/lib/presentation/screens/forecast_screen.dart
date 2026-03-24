@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:printing/printing.dart';
 
+import '../../core/i18n/language_map.dart';
 import '../../services/api_service.dart';
 import '../cubits/forecast_cubit.dart';
 
@@ -78,12 +79,13 @@ class _ForecastScreenState extends State<ForecastScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Forecast')),
+			appBar: AppBar(title: Text(context.t('forecast'))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _generateBulletin,
         icon: const Icon(Icons.picture_as_pdf),
-        label: const Text('Bulletin'),
+        label: Text(context.t('bulletin')),
       ),
       body: BlocBuilder<ForecastCubit, ForecastState>(
         builder: (BuildContext context, ForecastState state) {
@@ -100,7 +102,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
                   const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: () => context.read<ForecastCubit>().loadForecast(),
-                    child: const Text('Retry'),
+                    child: Text(context.t('retry')),
                   ),
                 ],
               ),
@@ -141,6 +143,32 @@ class _ForecastScreenState extends State<ForecastScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: <Color>[colorScheme.primaryContainer, colorScheme.surface],
+                    ),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(Icons.query_stats, color: colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          seasonal['advisory']?.toString() ?? 'Stay aligned with seasonal AYUSH lifestyle guidance.',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 12,
                   runSpacing: 8,
@@ -287,7 +315,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
                 Card(
                   child: ListTile(
                     leading: const Icon(Icons.wb_sunny),
-                    title: const Text('Seasonal Advisory'),
+                    title: Text(context.t('seasonal_advisory')),
                     subtitle: Text(seasonal['advisory']?.toString() ?? 'Stay aligned with seasonal AYUSH lifestyle guidance.'),
                   ),
                 ),

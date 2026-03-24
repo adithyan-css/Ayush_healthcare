@@ -19,7 +19,7 @@ class AppTheme {
 				bodyMedium: TextStyle(fontSize: 14, color: Colors.grey.shade700),
 				labelLarge: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
 			),
-			cardTheme: CardTheme(
+			cardTheme: CardThemeData(
 				elevation: 2,
 				shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
 			),

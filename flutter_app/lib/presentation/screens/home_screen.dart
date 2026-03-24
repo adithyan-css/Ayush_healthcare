@@ -73,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final Map<String, dynamic> profile = HiveService.getPrakritiProfile() ?? <String, dynamic>{};
     final List<Map<String, dynamic>> sessions = HiveService.getSessions().take(3).toList();
     final List<Map<String, String>> ritucharya = _ritucharyaTips();
@@ -92,6 +93,36 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: <Color>[colorScheme.primaryContainer, colorScheme.surface],
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  CircleAvatar(
+                    backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
+                    child: Icon(Icons.spa, color: colorScheme.primary),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _todayTip,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             const DataBannerWidget(),
             const SizedBox(height: 12),
             DoshaGaugeWidget(
@@ -142,7 +173,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      color: Colors.white,
+                      color: colorScheme.surface,
+                      border: Border.all(color: colorScheme.outlineVariant),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,10 +224,10 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
               children: <Widget>[
-                _ActionTile(title: context.t('get_recommendations'), icon: Icons.medical_services, onTap: () => context.go('/symptoms')),
-                _ActionTile(title: context.t('disease_heatmap'), icon: Icons.map, onTap: () => context.go('/heatmap')),
-                _ActionTile(title: context.t('forecast'), icon: Icons.query_stats, onTap: () => context.go('/forecast')),
-                _ActionTile(title: context.t('nadi_monitor'), icon: Icons.favorite, onTap: () => context.go('/nadi')),
+                _ActionTile(title: context.t('get_recommendations'), icon: Icons.medical_services, color: colorScheme.error, onTap: () => context.go('/symptoms')),
+                _ActionTile(title: context.t('disease_heatmap'), icon: Icons.map, color: colorScheme.primary, onTap: () => context.go('/heatmap')),
+                _ActionTile(title: context.t('forecast'), icon: Icons.query_stats, color: colorScheme.tertiary, onTap: () => context.go('/forecast')),
+                _ActionTile(title: context.t('nadi_monitor'), icon: Icons.favorite, color: colorScheme.secondary, onTap: () => context.go('/nadi')),
               ],
             ),
           ],
@@ -206,22 +238,29 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _ActionTile extends StatelessWidget {
-  const _ActionTile({required this.title, required this.icon, required this.onTap});
+  const _ActionTile({required this.title, required this.icon, required this.color, required this.onTap});
 
   final String title;
   final IconData icon;
+  final Color color;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      child: Card(
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: Theme.of(context).colorScheme.surface,
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(icon, size: 28),
+              Icon(icon, size: 28, color: color),
               const SizedBox(height: 8),
               Text(title, textAlign: TextAlign.center),
             ],

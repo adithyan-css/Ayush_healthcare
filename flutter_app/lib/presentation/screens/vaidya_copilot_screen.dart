@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/i18n/language_map.dart';
 import '../../services/api_service.dart';
 
 class VaidyaCopilotScreen extends StatefulWidget {
@@ -13,20 +14,19 @@ class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 	final _symptomsController = TextEditingController();
 	final _api = ApiService.instance;
 
-	final List<Map<String, String>> _patients = const [
-		{'id': 'p1', 'name': 'Aarav Sharma', 'prakriti': 'Vata-Pitta'},
-		{'id': 'p2', 'name': 'Meera Nair', 'prakriti': 'Pitta-Kapha'},
-		{'id': 'p3', 'name': 'Rohan Iyer', 'prakriti': 'Kapha-Vata'},
-	];
+	List<Map<String, dynamic>> _patients = <Map<String, dynamic>>[];
+	List<Map<String, dynamic>> _evidence = <Map<String, dynamic>>[];
 
-	Map<String, String>? _selected;
+	Map<String, dynamic>? _selected;
 	Map<String, dynamic>? _suggestion;
 	bool _loading = false;
+	bool _loadingPatients = false;
 
 	@override
 	void initState() {
 		super.initState();
-		_selected = _patients.first;
+		_loadPatients();
+		_loadEvidence();
 	}
 
 	@override
@@ -36,19 +36,73 @@ class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 		super.dispose();
 	}
 
+	Map<String, dynamic> _extractData(dynamic response) {
+		if (response is Map<String, dynamic>) {
+			final dynamic data = response['data'];
+			if (data is Map<String, dynamic>) {
+				return data;
+			}
+		}
+		return <String, dynamic>{};
+	}
+
+	List<Map<String, dynamic>> _extractDataList(dynamic response) {
+		if (response is Map<String, dynamic>) {
+			final dynamic data = response['data'];
+			if (data is List) {
+				return data.whereType<Map>().map((Map item) => Map<String, dynamic>.from(item)).toList();
+			}
+		}
+		return <Map<String, dynamic>>[];
+	}
+
+	Future<void> _loadPatients() async {
+		setState(() => _loadingPatients = true);
+		try {
+			final dynamic response = await _api.get('/vaidya/patients', queryParams: <String, dynamic>{'search': _searchController.text.trim()});
+			final List<Map<String, dynamic>> fetched = _extractDataList(response);
+			setState(() {
+				_patients = fetched;
+				if (_patients.isNotEmpty) {
+					_selected = _patients.firstWhere(
+						(Map<String, dynamic> p) => p['id'] == _selected?['id'],
+						orElse: () => _patients.first,
+					);
+				}
+			});
+		} catch (e) {
+			if (!mounted) {
+				return;
+			}
+			ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to load patients: $e')));
+		} finally {
+			if (mounted) {
+				setState(() => _loadingPatients = false);
+			}
+		}
+	}
+
+	Future<void> _loadEvidence() async {
+		try {
+			final dynamic response = await _api.get('/vaidya/evidence');
+			setState(() => _evidence = _extractDataList(response));
+		} catch (_) {}
+	}
+
 	Future<void> _fetchSuggestion() async {
 		setState(() => _loading = true);
 		try {
-			final symptoms = _symptomsController.text
+			final List<String> symptoms = _symptomsController.text
 					.split(',')
 					.map((e) => e.trim())
 					.where((e) => e.isNotEmpty)
 					.toList();
-			final response = await _api.post('/vaidya/suggest', {
+			final dynamic response = await _api.post('/vaidya/suggest', {
 				'symptoms': symptoms,
-				'dosha': _selected?['prakriti'] ?? 'Vata',
+				'dosha': (_selected?['prakriti_type'] ?? _selected?['prakriti'] ?? 'Vata').toString(),
+				'patient_uid': (_selected?['id'] ?? '').toString(),
 			});
-			setState(() => _suggestion = Map<String, dynamic>.from(response as Map));
+			setState(() => _suggestion = _extractData(response));
 		} catch (e) {
 			if (!mounted) return;
 			ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to get suggestion: $e')));
@@ -59,8 +113,9 @@ class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 
 	@override
 	Widget build(BuildContext context) {
+		final ColorScheme colorScheme = Theme.of(context).colorScheme;
 		final filtered = _patients
-				.where((p) => p['name']!.toLowerCase().contains(_searchController.text.toLowerCase()))
+				.where((p) => (p['display_name'] ?? '').toString().toLowerCase().contains(_searchController.text.toLowerCase()))
 				.toList();
 
 		Widget leftPanel() {
@@ -69,49 +124,91 @@ class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 				children: [
 					TextField(
 						controller: _searchController,
-						decoration: const InputDecoration(labelText: 'Search patient', prefixIcon: Icon(Icons.search)),
-						onChanged: (_) => setState(() {}),
+						decoration: InputDecoration(labelText: context.t('search_patient'), prefixIcon: const Icon(Icons.search)),
+						onChanged: (_) => _loadPatients(),
 					),
 					const SizedBox(height: 10),
 					Expanded(
-						child: ListView.builder(
-							itemCount: filtered.length,
-							itemBuilder: (context, index) {
-								final patient = filtered[index];
-								return Card(
-									child: ListTile(
-										selected: _selected?['id'] == patient['id'],
-										title: Text(patient['name']!),
-										subtitle: Text(patient['prakriti']!),
-										onTap: () => setState(() => _selected = patient),
-									),
-								);
-							},
-						),
+						child: _loadingPatients
+								? const Center(child: CircularProgressIndicator())
+								: ListView.builder(
+										itemCount: filtered.length,
+										itemBuilder: (context, index) {
+											final patient = filtered[index];
+											final bool selected = _selected?['id'] == patient['id'];
+											return Card(
+												color: selected ? colorScheme.primaryContainer.withValues(alpha: 0.35) : null,
+												child: ListTile(
+													selected: selected,
+													title: Text((patient['display_name'] ?? context.t('unknown')).toString()),
+													subtitle: Text((patient['prakriti_type'] ?? 'N/A').toString()),
+													onTap: () => setState(() => _selected = patient),
+												),
+											);
+										},
+								),
 					),
+					if (_evidence.isNotEmpty) ...[
+						const SizedBox(height: 8),
+						Text(context.t('evidence_snapshot'), style: Theme.of(context).textTheme.titleSmall),
+						const SizedBox(height: 6),
+						SizedBox(
+							height: 88,
+							child: ListView.separated(
+								scrollDirection: Axis.horizontal,
+								itemCount: _evidence.length,
+								separatorBuilder: (_, __) => const SizedBox(width: 8),
+								itemBuilder: (context, idx) {
+									final item = _evidence[idx];
+									return Container(
+										width: 180,
+										padding: const EdgeInsets.all(10),
+										decoration: BoxDecoration(
+											borderRadius: BorderRadius.circular(12),
+											color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+										),
+										child: Column(
+											crossAxisAlignment: CrossAxisAlignment.start,
+											children: [
+												Text((item['condition'] ?? '').toString(), style: Theme.of(context).textTheme.labelLarge),
+												const SizedBox(height: 4),
+												Text('${item['success_rate'] ?? '--'}% ${context.t('success')}'),
+											],
+										),
+									);
+								},
+							),
+						),
+					],
 				],
 			);
 		}
 
 		Widget rightPanel() {
-			final formulations = (_suggestion?['formulations'] as List<dynamic>? ?? []).map((e) => e.toString()).toList();
+			final List<dynamic> rawFormulations = (_suggestion?['formulations'] as List<dynamic>? ?? <dynamic>[]);
+			final List<String> formulations = rawFormulations.map((dynamic item) {
+				if (item is Map) {
+					return (item['name'] ?? item['formulation'] ?? item['herb'] ?? item.toString()).toString();
+				}
+				return item.toString();
+			}).toList();
 			return SingleChildScrollView(
 				child: Column(
 					crossAxisAlignment: CrossAxisAlignment.start,
 					children: [
 						Card(
 							child: ListTile(
-								title: Text(_selected?['name'] ?? 'No Patient'),
-								subtitle: Text('Prakriti: ${_selected?['prakriti'] ?? 'N/A'}'),
+								title: Text((_selected?['display_name'] ?? context.t('no_patient')).toString()),
+								subtitle: Text('${context.t('prakriti')}: ${(_selected?['prakriti_type'] ?? 'N/A').toString()}'),
 							),
 						),
 						const SizedBox(height: 10),
 						TextField(
 							controller: _symptomsController,
 							maxLines: 3,
-							decoration: const InputDecoration(
-								labelText: 'Symptoms (comma-separated)',
-								hintText: 'fever, cough, acidity',
+							decoration: InputDecoration(
+								labelText: context.t('symptoms_comma'),
+								hintText: context.t('symptoms_hint'),
 							),
 						),
 						const SizedBox(height: 10),
@@ -119,9 +216,21 @@ class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 							width: double.infinity,
 							child: ElevatedButton(
 								onPressed: _loading ? null : _fetchSuggestion,
-								child: Text(_loading ? 'Loading...' : 'Get AI Suggestion'),
+								child: Text(_loading ? context.t('loading') : context.t('get_ai_suggestion')),
 							),
 						),
+						if (_suggestion != null) ...[
+							const SizedBox(height: 12),
+							Container(
+								width: double.infinity,
+								padding: const EdgeInsets.all(12),
+								decoration: BoxDecoration(
+									borderRadius: BorderRadius.circular(12),
+									color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+								),
+								child: Text((_suggestion?['rationale'] ?? '').toString()),
+							),
+						],
 						const SizedBox(height: 12),
 						...formulations.map(
 							(f) => ExpansionTile(
@@ -140,7 +249,12 @@ class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 		}
 
 		return Scaffold(
-			appBar: AppBar(title: const Text('Vaidya Copilot — Doctor Dashboard')),
+			appBar: AppBar(
+				title: Text(context.t('vaidya_copilot')),
+				actions: [
+					IconButton(onPressed: _loadPatients, icon: const Icon(Icons.refresh)),
+				],
+			),
 			body: LayoutBuilder(
 				builder: (context, constraints) {
 					if (constraints.maxWidth > 600) {

@@ -26,69 +26,88 @@ class AuthCubit extends Cubit<AuthState> {
 
 	final ApiService _api = ApiService.instance;
 
+	Map<String, dynamic> _extractData(dynamic response) {
+		if (response is Map<String, dynamic>) {
+			final dynamic data = response['data'];
+			if (data is Map<String, dynamic>) {
+				return data;
+			}
+			return response;
+		}
+		return <String, dynamic>{};
+	}
+
+	Future<void> _saveAuthSession(Map<String, dynamic> tokenData) async {
+		final String token = (tokenData['access_token'] ?? '').toString();
+		if (token.isEmpty) {
+			throw Exception('Missing access token');
+		}
+		await HiveService.saveJwt(token);
+		await _api.saveJwt(token);
+
+		final dynamic meResponse = await _api.get('/auth/me');
+		final Map<String, dynamic> meData = _extractData(meResponse);
+		await HiveService.saveSettings('user_data', meData);
+		emit(AuthAuthenticated(meData));
+	}
+
 	Future<void> checkAuthStatus() async {
 		final jwt = HiveService.getJwt();
 		if (jwt != null && jwt.isNotEmpty) {
-			final storedUser = HiveService.getSetting('user_data');
-			final user = storedUser is Map
-					? Map<String, dynamic>.from(storedUser)
-					: {
-							'email': 'user@gmail.com',
-							'display_name': 'Test User',
-							'role': 'patient',
-						};
-			emit(AuthAuthenticated(user));
+			await _api.saveJwt(jwt);
+			try {
+				final dynamic response = await _api.get('/auth/me');
+				final Map<String, dynamic> user = _extractData(response);
+				await HiveService.saveSettings('user_data', user);
+				emit(AuthAuthenticated(user));
+			} catch (_) {
+				await HiveService.clearJwt();
+				await _api.clearJwt();
+				emit(AuthUnauthenticated());
+			}
 		} else {
 			emit(AuthUnauthenticated());
 		}
 	}
 
 	Future<void> signInWithGoogle() async {
-		emit(AuthLoading());
-		try {
-			final response = await _api.post('/auth/firebase-verify', {
-				'firebase_uid': 'google_mock',
-				'email': 'user@gmail.com',
-				'display_name': 'Test User',
-			});
-			final token = (response['access_token'] ?? '').toString();
-			await HiveService.saveJwt(token);
-			await HiveService.saveSettings('user_data', {
-				'email': 'user@gmail.com',
-				'display_name': 'Test User',
-				'role': 'patient',
-			});
-			emit(AuthAuthenticated({'email': 'user@gmail.com', 'display_name': 'Test User', 'role': 'patient'}));
-		} catch (e) {
-			emit(AuthError('Google sign-in failed: $e'));
-			emit(AuthUnauthenticated());
-		}
+		emit(AuthError('Google sign-in is not configured in backend. Use email login.'));
 	}
 
 	Future<void> signInWithEmail(String email, String password) async {
 		emit(AuthLoading());
 		try {
-			final response = await _api.post('/auth/firebase-verify', {
-				'firebase_uid': 'email_${email.hashCode}',
+			final dynamic response = await _api.post('/auth/login', {
 				'email': email,
-				'display_name': 'Test User',
+				'password': password,
 			});
-			final token = (response['access_token'] ?? '').toString();
-			await HiveService.saveJwt(token);
-			await HiveService.saveSettings('user_data', {
-				'email': email,
-				'display_name': 'Test User',
-				'role': 'patient',
-			});
-			emit(AuthAuthenticated({'email': email, 'display_name': 'Test User', 'role': 'patient'}));
+			await _saveAuthSession(_extractData(response));
 		} catch (e) {
 			emit(AuthError('Email sign-in failed: $e'));
 			emit(AuthUnauthenticated());
 		}
 	}
 
+	Future<void> registerWithEmail(String name, String email, String password) async {
+		emit(AuthLoading());
+		try {
+			final String language = HiveService.getLanguageCode();
+			final dynamic response = await _api.post('/auth/register', {
+				'email': email,
+				'password': password,
+				'display_name': name,
+				'language': language,
+			});
+			await _saveAuthSession(_extractData(response));
+		} catch (e) {
+			emit(AuthError('Registration failed: $e'));
+			emit(AuthUnauthenticated());
+		}
+	}
+
 	Future<void> signOut() async {
 		await HiveService.clearJwt();
+		await _api.clearJwt();
 		await Hive.box('prakriti').clear();
 		emit(AuthUnauthenticated());
 	}

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../core/i18n/language_map.dart';
 import '../cubits/recommendation_cubit.dart';
 
 class RecommendationResultScreen extends StatefulWidget {
@@ -29,7 +30,7 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
 
   void _downloadReport() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Arogya Report feature coming soon')),
+      SnackBar(content: Text(context.t('download_report'))),
     );
   }
 
@@ -65,14 +66,14 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
 
         if (state is RecommendationLoading) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Recommendations')),
+            appBar: AppBar(title: Text(context.t('recommendations'))),
             body: _ShimmerLoadingView(),
           );
         }
 
         if (state is RecommendationError) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Recommendations')),
+            appBar: AppBar(title: Text(context.t('recommendations'))),
             body: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -81,7 +82,7 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
                   const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: () => context.read<RecommendationCubit>().regenerate(),
-                    child: const Text('Retry'),
+                    child: Text(context.t('retry')),
                   ),
                 ],
               ),
@@ -117,7 +118,7 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Recommendations'),
+            title: Text(context.t('recommendations')),
             actions: <Widget>[
               IconButton(
                 onPressed: () => context.read<RecommendationCubit>().regenerate(),
@@ -126,11 +127,11 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
             ],
             bottom: TabBar(
               controller: _tabController,
-              tabs: const <Tab>[
-                Tab(text: 'HERBS'),
-                Tab(text: 'DIET'),
-                Tab(text: 'YOGA'),
-                Tab(text: 'DINACHARYA'),
+              tabs: <Tab>[
+                Tab(text: context.t('herbs')),
+                Tab(text: context.t('diet')),
+                Tab(text: context.t('yoga')),
+                Tab(text: context.t('dinacharya')),
               ],
             ),
           ),
@@ -187,7 +188,7 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
-                                    const Text('Eat', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    Text(context.t('eat'), style: const TextStyle(fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 10),
                                     ...eatList.map((dynamic item) {
                                       final String text = item is Map
@@ -219,7 +220,7 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
-                                    const Text('Avoid', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    Text(context.t('avoid'), style: const TextStyle(fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 10),
                                     ...avoidList.map((dynamic item) {
                                       final String text = item is Map
@@ -298,7 +299,7 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
                   collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   backgroundColor: Colors.blue.shade50,
                   collapsedBackgroundColor: Colors.blue.shade50,
-                  title: const Text('30-Day Prevention Plan', style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(context.t('prevention_30_day_plan'), style: const TextStyle(fontWeight: FontWeight.bold)),
                   children: <Widget>[
                     Padding(
                       padding: const EdgeInsets.all(12),

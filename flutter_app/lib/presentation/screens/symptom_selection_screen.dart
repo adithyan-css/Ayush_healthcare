@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
+import '../../core/i18n/language_map.dart';
 import '../../services/hive_service.dart';
 import '../cubits/recommendation_cubit.dart';
 
@@ -39,8 +40,9 @@ class _SymptomSelectionScreenState extends State<SymptomSelectionScreen> {
 
 	@override
 	Widget build(BuildContext context) {
+		final colorScheme = Theme.of(context).colorScheme;
 		return Scaffold(
-			appBar: AppBar(title: const Text('Select Symptoms')),
+			appBar: AppBar(title: Text(context.t('select_symptoms'))),
 			body: BlocListener<RecommendationCubit, RecommendationState>(
 				listener: (context, state) {
 					if (state is RecommendationLoaded) {
@@ -54,10 +56,28 @@ class _SymptomSelectionScreenState extends State<SymptomSelectionScreen> {
 						return Stack(
 							children: [
 								SingleChildScrollView(
-									padding: const EdgeInsets.all(16),
+									padding: const EdgeInsets.fromLTRB(16, 14, 16, 110),
 									child: Column(
 										crossAxisAlignment: CrossAxisAlignment.start,
 										children: [
+											Container(
+												width: double.infinity,
+												padding: const EdgeInsets.all(14),
+												decoration: BoxDecoration(
+													color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+													borderRadius: BorderRadius.circular(14),
+												),
+												child: Row(
+													children: [
+														Icon(Icons.fact_check_outlined, color: colorScheme.primary),
+														const SizedBox(width: 8),
+														Expanded(
+															child: Text('${selected.length} ${context.t('selected')}', style: Theme.of(context).textTheme.titleSmall),
+														),
+													],
+												),
+											),
+											const SizedBox(height: 14),
 											..._categories.entries.map((entry) {
 												return Column(
 													crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,8 +92,9 @@ class _SymptomSelectionScreenState extends State<SymptomSelectionScreen> {
 																return FilterChip(
 																	label: Text(symptom),
 																	selected: isSelected,
-																	  selectedColor: _doshaColor().withOpacity(0.2),
+																	selectedColor: _doshaColor().withValues(alpha: 0.18),
 																	checkmarkColor: _doshaColor(),
+																	side: BorderSide(color: isSelected ? _doshaColor() : colorScheme.outlineVariant),
 																	onSelected: (_) => cubit.toggleSymptom(symptom),
 																);
 															}).toList(),
@@ -86,28 +107,34 @@ class _SymptomSelectionScreenState extends State<SymptomSelectionScreen> {
 												controller: _freeTextController,
 												minLines: 2,
 												maxLines: 4,
-												decoration: const InputDecoration(
-													labelText: 'Optional notes',
-													hintText: 'Describe your symptoms in your own words',
-												),
-											),
-											const SizedBox(height: 16),
-											SizedBox(
-												width: double.infinity,
-												child: ElevatedButton(
-													onPressed: selected.isEmpty
-															? null
-															: () => context.read<RecommendationCubit>().generateRecommendation(_freeTextController.text.trim().isEmpty ? null : _freeTextController.text.trim()),
-													child: const Text('Submit'),
+												decoration: InputDecoration(
+													labelText: context.t('optional_notes'),
+													hintText: context.t('describe_symptoms'),
 												),
 											),
 										],
 									),
 								),
+								Align(
+									alignment: Alignment.bottomCenter,
+									child: SafeArea(
+										minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+										child: SizedBox(
+											width: double.infinity,
+											height: 52,
+											child: ElevatedButton(
+												onPressed: selected.isEmpty
+														? null
+														: () => context.read<RecommendationCubit>().generateRecommendation(_freeTextController.text.trim().isEmpty ? null : _freeTextController.text.trim()),
+												child: Text(context.t('submit')),
+											),
+										),
+									),
+								),
 								if (state is RecommendationLoading)
 									Positioned.fill(
 										child: Container(
-											  color: Colors.black.withOpacity(0.25),
+											color: Colors.black.withValues(alpha: 0.25),
 											child: Center(
 												child: Shimmer.fromColors(
 													baseColor: Colors.white,
@@ -117,7 +144,7 @@ class _SymptomSelectionScreenState extends State<SymptomSelectionScreen> {
 														height: 50,
 														alignment: Alignment.center,
 														decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-														child: const Text('Generating...', style: TextStyle(fontWeight: FontWeight.bold)),
+														child: Text(context.t('generating'), style: const TextStyle(fontWeight: FontWeight.bold)),
 													),
 												),
 											),

@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../core/i18n/language_map.dart';
 import '../cubits/wearable_cubit.dart';
 
 class NadiMonitorScreen extends StatefulWidget {
@@ -19,8 +20,9 @@ class _NadiMonitorScreenState extends State<NadiMonitorScreen> {
 
 	@override
 	Widget build(BuildContext context) {
+		final ColorScheme colorScheme = Theme.of(context).colorScheme;
 		return Scaffold(
-			appBar: AppBar(title: const Text('Nadi Monitor')),
+			appBar: AppBar(title: Text(context.t('nadi_monitor'))),
 			body: BlocBuilder<WearableCubit, WearableState>(
 				builder: (context, state) {
 					if (state is WearableInitial || state is WearableLoading) {
@@ -52,6 +54,26 @@ class _NadiMonitorScreenState extends State<NadiMonitorScreen> {
 						child: Column(
 							crossAxisAlignment: CrossAxisAlignment.start,
 							children: [
+								Container(
+									width: double.infinity,
+									padding: const EdgeInsets.all(14),
+									decoration: BoxDecoration(
+										borderRadius: BorderRadius.circular(14),
+										gradient: LinearGradient(
+											begin: Alignment.topLeft,
+											end: Alignment.bottomRight,
+											colors: <Color>[colorScheme.secondaryContainer, colorScheme.surface],
+										),
+									),
+									child: Row(
+										children: [
+											Icon(Icons.monitor_heart, color: colorScheme.secondary),
+											const SizedBox(width: 8),
+											Expanded(child: Text('${context.t('dominant_nadi')}: ${(diagnosis['type'] ?? 'Unknown').toString()}')),
+										],
+									),
+								),
+								const SizedBox(height: 12),
 								SizedBox(
 									height: 220,
 									child: RadarChart(
@@ -97,11 +119,11 @@ class _NadiMonitorScreenState extends State<NadiMonitorScreen> {
 								const SizedBox(height: 12),
 								Card(
 									child: ListTile(
-										title: Text('Dominant Nadi: ${(diagnosis['type'] ?? 'Unknown').toString()}'),
-										subtitle: Text('7-day avg HRV: ${avg.toStringAsFixed(2)} ms'),
+										title: Text('${context.t('dominant_nadi')}: ${(diagnosis['type'] ?? 'Unknown').toString()}'),
+										subtitle: Text('${context.t('avg_7_day_hrv')}: ${avg.toStringAsFixed(2)} ms'),
 										trailing: anomaly
-												? const Text('ANOMALY', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
-												: const Text('Stable'),
+												? Text(context.t('anomaly'), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
+												: Text(context.t('stable')),
 									),
 								),
 								const SizedBox(height: 12),
@@ -110,7 +132,7 @@ class _NadiMonitorScreenState extends State<NadiMonitorScreen> {
 									child: ElevatedButton.icon(
 										onPressed: () => context.read<WearableCubit>().syncToBackend(readings),
 										icon: const Icon(Icons.sync),
-										label: const Text('Sync'),
+										label: Text(context.t('sync')),
 									),
 								),
 							],
