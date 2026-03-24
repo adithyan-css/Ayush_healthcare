@@ -4,4 +4,11 @@ __pycache__/
 .env
 test.db
 *.db
-alembic/versions/*.pyc\n
+alembic/versions/*.pyc
+__pycache__/
+*.pyc
+*.pyo
+.env
+test.db
+*.db
+alembic/versions/*.pyc
