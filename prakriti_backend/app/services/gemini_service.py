@@ -151,7 +151,95 @@ Respond in language: {lang}"""
             result = await self._generate_json(prompt, max_tokens=1800, temperature=0.2)
             return dict(result)
         except Exception:
-            return await self.generate_recommendation(dosha, vata_pct, pitta_pct, kapha_pct, season, symptoms, history, free_text, lang)
+            if dosha.lower() == 'pitta':
+                return {
+                    'herbs': [
+                        {'name': 'Guduchi', 'benefit': 'Supports cooling and immunity', 'dosage': '500 mg twice daily', 'timing': 'after meals'},
+                        {'name': 'Amalaki', 'benefit': 'Helps reduce heat and acidity', 'dosage': '1 tsp powder daily', 'timing': 'morning'},
+                        {'name': 'Brahmi', 'benefit': 'Calms mind and improves focus', 'dosage': '250 mg once daily', 'timing': 'evening'},
+                    ],
+                    'diet': {
+                        'eat': [
+                            {'food': 'Cucumber and coriander', 'reason': 'Cooling support for pitta'},
+                            {'food': 'Moong dal khichdi', 'reason': 'Light and easy to digest'},
+                        ],
+                        'avoid': [
+                            {'food': 'Very spicy fried food', 'reason': 'May aggravate pitta heat'},
+                            {'food': 'Excess coffee', 'reason': 'Can increase irritability and acidity'},
+                        ],
+                    },
+                    'yoga': [
+                        {'name': 'Sheetali Pranayama', 'duration': '8 min', 'benefit': 'Cooling breath practice'},
+                        {'name': 'Ardha Matsyendrasana', 'duration': '6 min', 'benefit': 'Supports digestion'},
+                    ],
+                    'dinacharya': [
+                        {'time': '06:00', 'activity': 'Wake up and hydrate with room-temperature water'},
+                        {'time': '07:00', 'activity': '20-minute light yoga and breathing'},
+                        {'time': '12:30', 'activity': 'Main lunch with cooling foods'},
+                        {'time': '18:30', 'activity': 'Early light dinner'},
+                        {'time': '22:00', 'activity': 'Sleep routine and digital detox'},
+                    ],
+                    'prevention_30day': 'For 30 days, prioritize cooling meals, avoid late-night spicy food, practice Sheetali and Anulom Vilom daily, and maintain sleep before 10:30 PM.',
+                }
+            if dosha.lower() == 'kapha':
+                return {
+                    'herbs': [
+                        {'name': 'Trikatu', 'benefit': 'Supports metabolism and kapha balance', 'dosage': '250 mg twice daily', 'timing': 'before meals'},
+                        {'name': 'Guggulu', 'benefit': 'Helps with sluggishness and heaviness', 'dosage': '500 mg once daily', 'timing': 'morning'},
+                        {'name': 'Tulsi', 'benefit': 'Supports respiratory resilience', 'dosage': '2 leaves or tea daily', 'timing': 'morning'},
+                    ],
+                    'diet': {
+                        'eat': [
+                            {'food': 'Warm spiced soups', 'reason': 'Light and warming for kapha'},
+                            {'food': 'Millets and steamed vegetables', 'reason': 'Supports weight and digestion'},
+                        ],
+                        'avoid': [
+                            {'food': 'Cold dairy desserts', 'reason': 'May increase heaviness'},
+                            {'food': 'Deep-fried snacks', 'reason': 'Can worsen sluggishness'},
+                        ],
+                    },
+                    'yoga': [
+                        {'name': 'Surya Namaskar', 'duration': '15 min', 'benefit': 'Stimulates circulation'},
+                        {'name': 'Kapalabhati', 'duration': '5 min', 'benefit': 'Activates metabolism'},
+                    ],
+                    'dinacharya': [
+                        {'time': '05:45', 'activity': 'Wake early and brisk walk'},
+                        {'time': '07:00', 'activity': 'Active yoga practice'},
+                        {'time': '13:00', 'activity': 'Balanced warm lunch'},
+                        {'time': '17:30', 'activity': 'Herbal tea and short walk'},
+                        {'time': '21:45', 'activity': 'Wind-down and sleep'},
+                    ],
+                    'prevention_30day': 'For 30 days, maintain daily movement, warm light meals, avoid day sleep, and include Surya Namaskar with Kapalabhati at least five days per week.',
+                }
+            return {
+                'herbs': [
+                    {'name': 'Ashwagandha', 'benefit': 'Supports stress adaptation and sleep', 'dosage': '500 mg at bedtime', 'timing': 'night'},
+                    {'name': 'Bala', 'benefit': 'Supports strength and nervous system', 'dosage': '250 mg once daily', 'timing': 'morning'},
+                    {'name': 'Triphala', 'benefit': 'Supports digestion and regularity', 'dosage': '1 tsp warm water', 'timing': 'night'},
+                ],
+                'diet': {
+                    'eat': [
+                        {'food': 'Warm cooked grains and ghee', 'reason': 'Grounding for vata'},
+                        {'food': 'Stewed fruits', 'reason': 'Easy digestion and hydration'},
+                    ],
+                    'avoid': [
+                        {'food': 'Cold raw salads at night', 'reason': 'May aggravate dryness and gas'},
+                        {'food': 'Irregular meal timings', 'reason': 'Increases vata imbalance'},
+                    ],
+                },
+                'yoga': [
+                    {'name': 'Vrikshasana', 'duration': '6 min', 'benefit': 'Improves grounding and balance'},
+                    {'name': 'Anulom Vilom', 'duration': '10 min', 'benefit': 'Calms nervous system'},
+                ],
+                'dinacharya': [
+                    {'time': '06:00', 'activity': 'Wake and drink warm water'},
+                    {'time': '07:00', 'activity': 'Gentle yoga and pranayama'},
+                    {'time': '12:30', 'activity': 'Warm freshly cooked lunch'},
+                    {'time': '19:00', 'activity': 'Light warm dinner'},
+                    {'time': '22:00', 'activity': 'Sleep with fixed routine'},
+                ],
+                'prevention_30day': 'For 30 days, keep strict routine, eat warm freshly cooked foods, oil massage 3 times weekly, and practice Anulom Vilom daily.',
+            }
 
     async def generate_xai_explanation(
         self,
@@ -220,7 +308,23 @@ Return ONLY JSON object: {{"formulations": [""], "rationale": "", "cautions": ["
             result = await self._generate_json(prompt, max_tokens=900, temperature=0.2)
             return dict(result)
         except Exception:
-            return await self.generate_vaidya_suggestion(symptoms, dosha, history)
+            if dosha.lower() == 'kapha':
+                return {
+                    'formulations': ['Trikatu Churna', 'Kanchanar Guggulu', 'Tulsi Ginger Decoction'],
+                    'rationale': 'These classical formulations support kapha reduction, metabolism and respiratory resilience.',
+                    'cautions': ['Avoid in active gastritis without supervision', 'Monitor if on anticoagulants'],
+                }
+            if dosha.lower() == 'pitta':
+                return {
+                    'formulations': ['Guduchi Satva', 'Amalaki Rasayana', 'Praval Pishti (supervised)'],
+                    'rationale': 'Cooling and pitta-pacifying support with digestive and inflammatory balance.',
+                    'cautions': ['Use mineral preparations only under licensed supervision'],
+                }
+            return {
+                'formulations': ['Ashwagandha Churna', 'Dashamoola Kwatha', 'Triphala at bedtime'],
+                'rationale': 'Supports vata balancing, stress adaptation and bowel regulation.',
+                'cautions': ['Adjust dose in pregnancy and chronic conditions with physician advice'],
+            }
 
     async def generate_bulletin_text(
         self,
@@ -250,7 +354,11 @@ Return ONLY JSON: {{"bulletin_text": "..."}}"""
             result = await self._generate_json(prompt, max_tokens=500, temperature=0.2)
             return str(result.get('bulletin_text', '')).strip()
         except Exception:
-            return await self.generate_bulletin_text(district_name, risk_level, top_conditions, forecast_summary, weather_summary, social_summary)
+            return (
+                f'{district_name} currently shows {risk_level} public-health pressure, led by {", ".join(top_conditions)}. '
+                f'Forecast indicates {forecast_summary}. Weather context: {weather_summary}. Social signals: {social_summary}. '
+                'Immediate preventive AYUSH messaging is advised with hydration, seasonal diet and community surveillance.'
+            )
 
     async def generate_prevention_plan(self, location: str, risk_score: int, dosha: str, age_group: str = 'adult') -> str:
         if not self.api_key:
@@ -270,4 +378,8 @@ Return ONLY JSON: {{"plan": "..."}}"""
             result = await self._generate_json(prompt, max_tokens=700, temperature=0.2)
             return str(result.get('plan', '')).strip()
         except Exception:
-            return await self.generate_prevention_plan(location, risk_score, dosha, age_group)
+            return (
+                f'30-day prevention plan for {location}: Follow a {dosha}-balancing diet, include Tulsi-Guduchi decoction 5 days/week, '
+                f'practice Surya Namaskar and Anulom Vilom daily, maintain fixed sleep, and monitor symptoms weekly for {age_group} group '
+                f'under current risk score {risk_score}/100.'
+            )

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/i18n/language_map.dart';
 import '../../services/hive_service.dart';
 import '../cubits/auth_cubit.dart';
 
@@ -61,7 +62,7 @@ class _SplashScreenState extends State<SplashScreen> {
 							Icon(Icons.spa, size: 64, color: Theme.of(context).colorScheme.primary),
 							const SizedBox(height: 12),
 							Text(
-								'PrakritiOS',
+								context.t('app_name'),
 								style: TextStyle(
 									fontSize: 36,
 									fontWeight: FontWeight.bold,

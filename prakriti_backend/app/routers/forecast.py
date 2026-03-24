@@ -1,24 +1,25 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.database import get_db, get_redis
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, success_response, resolve_language
 from app.models.district import DistrictRisk
 from app.models.user import User
-from app.schemas.schemas import ForecastResponse
 from app.services.forecast_service import ForecastService
-from app.services.gemini_service import GeminiService
+from app.services.recommendation_service import RecommendationService
 from app.services.ml_service import MLService
 from app.services.nlp_service import NLPService
 from app.services.pdf_service import PDFService
 from app.services.weather_service import WeatherService
 
 router = APIRouter()
+logger = logging.getLogger('prakriti_backend')
 ml = MLService()
 ws = WeatherService()
 nlp = NLPService()
-gemini = GeminiService()
+recommendation_service = RecommendationService()
 pdf = PDFService()
 forecast_service = ForecastService()
 
@@ -46,51 +47,51 @@ ADVISORIES = {
 }
 
 
-@router.get('/national', response_model=ForecastResponse)
+@router.get('/national')
 async def national():
     try:
-        return forecast_service.national_forecast()
-    except Exception:
-        return {'conditions': {}, 'region_cards': [], 'population_risks': {}}
+        return success_response(forecast_service.national_forecast(), 'National forecast loaded')
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f'Unable to load national forecast: {exc}')
 
 
 @router.get('/regions')
 async def regions():
     try:
-        return forecast_service.region_cards()
-    except Exception:
-        return []
+        return success_response(forecast_service.region_cards(), 'Regional forecast loaded')
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f'Unable to load regional forecast: {exc}')
 
 
 @router.get('/population')
 async def population():
     try:
-        return forecast_service.population_risks()
-    except Exception:
-        return {}
+        return success_response(forecast_service.population_risks(), 'Population risks loaded')
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f'Unable to load population risks: {exc}')
 
 
 @router.get('/seasonal')
 async def seasonal(season: str | None = None):
     season_key = (season or ws.get_current_season()).lower()
     details = ADVISORIES.get(season_key, ADVISORIES['autumn'])
-    return {
+    return success_response({
         'season': season_key,
         'advisory': details['advisory'],
         'dosha_impact': details['dosha_impact'],
         'recommendations': details['recommendations'],
-    }
+    }, 'Seasonal advisory loaded')
 
 
 @router.get('/explain/{district_id}')
-async def explain(district_id: str, db: AsyncSession = Depends(get_db)):
+async def explain(district_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     try:
         district = (await db.execute(select(DistrictRisk).where(DistrictRisk.state_code == district_id))).scalars().first()
         if not district:
-            return {'reasons': ['District not found. Showing default reason list.']}
+            raise HTTPException(status_code=404, detail='District not found')
 
         weather_summary, social_summary = await forecast_service.build_explanation_context(district)
-        reasons = await gemini.generate_xai_explanation(
+        reasons = await recommendation_service.generate_xai_explanation(
             district=district.state_name,
             risk_level=district.risk_level,
             risk_score=float(district.risk_score),
@@ -98,26 +99,22 @@ async def explain(district_id: str, db: AsyncSession = Depends(get_db)):
             trend=district.trend,
             weather_summary=weather_summary,
             social_summary=social_summary,
+            language=resolve_language(request),
         )
-        return {'reasons': reasons[:5]}
-    except Exception:
-        return {
-            'reasons': [
-                'Regional weather variance is increasing fever and respiratory pressure.',
-                'Signal density from symptom reports indicates elevated incidence.',
-                'Trendline analysis indicates persistence over recent reporting window.',
-                'Population vulnerability factors remain significant in current season.',
-            ]
-        }
+        return success_response({'reasons': reasons[:5]}, 'Forecast explanation loaded')
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f'Unable to explain forecast: {exc}')
 
 
 @router.post('/bulletin')
-async def bulletin(data: dict, db: AsyncSession = Depends(get_db)):
+async def bulletin(data: dict, request: Request, db: AsyncSession = Depends(get_db)):
     district_id = data.get('district_id', 'MH')
     try:
         district = (await db.execute(select(DistrictRisk).where(DistrictRisk.state_code == district_id))).scalars().first()
         if not district:
-            return {'pdf_base64': '', 'district': 'Unknown', 'generated_at': datetime.utcnow().isoformat()}
+            raise HTTPException(status_code=404, detail='District not found')
 
         weather = await ws.get_district_weather(district.latitude or 20.0, district.longitude or 78.0)
         signal = nlp.get_signal_summary(district.state_code)
@@ -125,15 +122,16 @@ async def bulletin(data: dict, db: AsyncSession = Depends(get_db)):
         forecast_summary = f"National trend shows peak pressure in {forecast['region_cards'][0]['region']}"
         weather_summary = f'Temp {weather.temperature}C, humidity {weather.humidity}%, AQI {weather.aqi}'
 
-        bulletin_text = await gemini.generate_bulletin_text(
+        bulletin_text = await recommendation_service.generate_bulletin_text(
             district_name=district.state_name,
             risk_level=district.risk_level,
             top_conditions=[district.top_condition],
             forecast_summary=forecast_summary,
             weather_summary=weather_summary,
             social_summary=signal.summary,
+            language=resolve_language(request),
         )
-        xai = await gemini.generate_xai_explanation(
+        xai = await recommendation_service.generate_xai_explanation(
             district=district.state_name,
             risk_level=district.risk_level,
             risk_score=float(district.risk_score),
@@ -141,6 +139,7 @@ async def bulletin(data: dict, db: AsyncSession = Depends(get_db)):
             trend=district.trend,
             weather_summary=weather_summary,
             social_summary=signal.summary,
+            language=resolve_language(request),
         )
         season_info = ADVISORIES.get(ws.get_current_season(), ADVISORIES['autumn'])
         encoded = pdf.generate_bulletin(
@@ -152,9 +151,11 @@ async def bulletin(data: dict, db: AsyncSession = Depends(get_db)):
             seasonal_advisory=season_info['advisory'],
             bulletin_text=bulletin_text,
         )
-        return {'pdf_base64': encoded, 'district': district.state_name, 'generated_at': datetime.utcnow().isoformat()}
+        return success_response({'pdf_base64': encoded, 'district': district.state_name, 'generated_at': datetime.utcnow().isoformat()}, 'Bulletin generated')
+    except HTTPException:
+        raise
     except Exception as exc:
-        return {'pdf_base64': '', 'district': district_id, 'generated_at': datetime.utcnow().isoformat(), 'error': str(exc)}
+        raise HTTPException(status_code=500, detail=f'Unable to generate bulletin: {exc}')
 
 
 @router.post('/refresh')
@@ -167,6 +168,6 @@ async def refresh(current_user: User = Depends(get_current_user)):
     if redis_client is not None:
         try:
             await redis_client.set('forecast:national', str(data), ex=3600)
-        except Exception:
-            pass
-    return {'status': 'refreshed', 'generated_at': datetime.utcnow().isoformat()}
+        except Exception as exc:
+            logger.warning('Failed to cache refreshed forecast: %s', exc)
+    return success_response({'status': 'refreshed', 'generated_at': datetime.utcnow().isoformat()}, 'Forecast refreshed')

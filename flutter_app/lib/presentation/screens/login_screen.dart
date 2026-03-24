@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/i18n/language_map.dart';
 import '../../services/hive_service.dart';
 import '../cubits/auth_cubit.dart';
 
@@ -51,20 +52,20 @@ class _LoginScreenState extends State<LoginScreen> {
 										children: [
 											Icon(Icons.spa, size: 72, color: Theme.of(context).colorScheme.primary),
 											const SizedBox(height: 8),
-											Text('PrakritiOS', style: Theme.of(context).textTheme.headlineMedium),
+											Text(context.t('app_name'), style: Theme.of(context).textTheme.headlineMedium),
 											const SizedBox(height: 24),
 											TextFormField(
 												controller: _emailController,
 												keyboardType: TextInputType.emailAddress,
-												decoration: const InputDecoration(labelText: 'Email'),
-												validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+												decoration: InputDecoration(labelText: context.t('email')),
+												validator: (v) => (v == null || !v.contains('@')) ? context.t('valid_email') : null,
 											),
 											const SizedBox(height: 12),
 											TextFormField(
 												controller: _passwordController,
-												decoration: const InputDecoration(labelText: 'Password'),
+												decoration: InputDecoration(labelText: context.t('password')),
 												obscureText: true,
-												validator: (v) => (v == null || v.length < 6) ? 'Minimum 6 characters' : null,
+												validator: (v) => (v == null || v.length < 6) ? context.t('minimum_6_chars') : null,
 											),
 											const SizedBox(height: 16),
 											SizedBox(
@@ -75,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
 															context.read<AuthCubit>().signInWithEmail(_emailController.text.trim(), _passwordController.text.trim());
 														}
 													},
-													child: const Text('Sign In'),
+													child: Text(context.t('sign_in')),
 												),
 											),
 											const SizedBox(height: 8),
@@ -86,13 +87,13 @@ class _LoginScreenState extends State<LoginScreen> {
 														context.read<AuthCubit>().signInWithGoogle();
 													},
 													icon: const Icon(Icons.login),
-													label: const Text('Google Sign In'),
+													label: Text(context.t('google_sign_in')),
 												),
 											),
 											const SizedBox(height: 8),
 											TextButton(
 												onPressed: () => context.go('/register'),
-												child: const Text('New user? Register'),
+												child: Text(context.t('new_user_register')),
 											),
 										],
 									),

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'hive_service.dart';
 
 class ApiService {
   ApiService._internal() {
@@ -10,6 +11,7 @@ class ApiService {
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+          options.headers['X-Language'] = HiveService.getLanguageCode();
           handler.next(options);
         },
         onError: (error, handler) async {

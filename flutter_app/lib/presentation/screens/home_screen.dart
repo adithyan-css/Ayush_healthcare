@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/i18n/language_map.dart';
 import '../../services/hive_service.dart';
 import '../../widgets/alert_banner.dart';
 import '../../widgets/data_banner.dart';
@@ -78,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('PrakritiOS'),
+        title: Text(context.t('app_name')),
         actions: <Widget>[
           IconButton(
             onPressed: () => context.go('/settings'),
@@ -126,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             const SizedBox(height: 16),
-            Text('Ritucharya (7 days)', style: Theme.of(context).textTheme.titleMedium),
+            Text(context.t('ritucharya_7_days'), style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             SizedBox(
               height: 88,
@@ -161,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Text('Recent Sessions', style: Theme.of(context).textTheme.titleMedium),
+            Text(context.t('recent_sessions'), style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             ...sessions.map((Map<String, dynamic> session) {
               final dynamic rawSymptoms = session['symptoms'];
@@ -172,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               return Card(
                 child: ListTile(
-                  title: Text(session['created_at']?.toString().split('T').first ?? 'Recent'),
+                  title: Text(session['created_at']?.toString().split('T').first ?? context.t('recent')),
                   subtitle: Wrap(
                     spacing: 6,
                     children: symptoms
@@ -191,10 +192,10 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
               children: <Widget>[
-                _ActionTile(title: 'Get Recommendations', icon: Icons.medical_services, onTap: () => context.go('/symptoms')),
-                _ActionTile(title: 'Disease Heatmap', icon: Icons.map, onTap: () => context.go('/heatmap')),
-                _ActionTile(title: 'Forecast', icon: Icons.query_stats, onTap: () => context.go('/forecast')),
-                _ActionTile(title: 'Nadi Monitor', icon: Icons.favorite, onTap: () => context.go('/nadi')),
+                _ActionTile(title: context.t('get_recommendations'), icon: Icons.medical_services, onTap: () => context.go('/symptoms')),
+                _ActionTile(title: context.t('disease_heatmap'), icon: Icons.map, onTap: () => context.go('/heatmap')),
+                _ActionTile(title: context.t('forecast'), icon: Icons.query_stats, onTap: () => context.go('/forecast')),
+                _ActionTile(title: context.t('nadi_monitor'), icon: Icons.favorite, onTap: () => context.go('/nadi')),
               ],
             ),
           ],

@@ -1,4 +1,3 @@
-from .gemini_service import GeminiService
 from .weather_service import WeatherService
 from .ml_service import MLService
 from .pdf_service import PDFService
@@ -9,9 +8,9 @@ from .recommendation_service import RecommendationService
 from .heatmap_service import HeatmapService
 from .forecast_service import ForecastService
 from .wearable_service import WearableService
+from .hf_service import HFService
 
 __all__ = [
-	'GeminiService',
 	'WeatherService',
 	'MLService',
 	'PDFService',
@@ -22,4 +21,5 @@ __all__ = [
 	'HeatmapService',
 	'ForecastService',
 	'WearableService',
+	'HFService',
 ]

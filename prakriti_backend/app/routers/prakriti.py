@@ -8,14 +8,14 @@ from app.database import get_db
 from app.models.user import User
 from app.models.prakriti import PrakritiProfile
 from app.schemas.schemas import PrakritiProfileCreate, PrakritiProfileResponse
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, success_response
 from app.services.prakriti_service import PrakritiService
 
 router = APIRouter()
 prakriti_service = PrakritiService()
 
 
-@router.post('/profile', response_model=PrakritiProfileResponse)
+@router.post('/profile')
 async def create_profile(data: PrakritiProfileCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
 	try:
 		scores = prakriti_service.calculate_dominant_dosha(data.vata_score, data.pitta_score, data.kapha_score)
@@ -26,27 +26,27 @@ async def create_profile(data: PrakritiProfileCreate, current_user: User = Depen
 		db.add(profile)
 		await db.commit()
 		await db.refresh(profile)
-		return profile
+		return success_response(profile, 'Profile created')
 	except Exception as exc:
 		await db.rollback()
 		raise HTTPException(status_code=500, detail=f'Unable to create profile: {exc}')
 
 
-@router.get('/profile', response_model=PrakritiProfileResponse)
+@router.get('/profile')
 async def get_profile(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
 	try:
 		result = await db.execute(select(PrakritiProfile).where(PrakritiProfile.user_id == current_user.id).order_by(PrakritiProfile.completed_at.desc()))
 		profile = result.scalars().first()
 		if not profile:
 			raise HTTPException(status_code=404, detail='Profile not found')
-		return profile
+		return success_response(profile, 'Profile loaded')
 	except HTTPException:
 		raise
 	except Exception as exc:
 		raise HTTPException(status_code=500, detail=f'Unable to fetch profile: {exc}')
 
 
-@router.put('/profile', response_model=PrakritiProfileResponse)
+@router.put('/profile')
 async def update_profile(data: PrakritiProfileCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
 	try:
 		scores = prakriti_service.calculate_dominant_dosha(data.vata_score, data.pitta_score, data.kapha_score)
@@ -64,7 +64,7 @@ async def update_profile(data: PrakritiProfileCreate, current_user: User = Depen
 				setattr(profile, k, v)
 		await db.commit()
 		await db.refresh(profile)
-		return profile
+		return success_response(profile, 'Profile updated')
 	except Exception as exc:
 		await db.rollback()
 		raise HTTPException(status_code=500, detail=f'Unable to update profile: {exc}')
@@ -84,18 +84,18 @@ async def vision_analyse(image: UploadFile = File(...), current_user: User = Dep
 		choices = ['vata', 'pitta', 'kapha']
 		hint_dosha = choices[digest % 3]
 		confidence = round(0.68 + ((digest % 20) / 100), 2)
-		return {
+		return success_response({
 			'hint_dosha': hint_dosha,
 			'confidence': confidence,
 			'note': 'Computer vision analysis - confirm with full quiz',
-		}
+		}, 'Vision analysis complete')
 	except Exception as exc:
-		return {'hint_dosha': 'vata', 'confidence': 0.7, 'note': f'Computer vision analysis - confirm with full quiz ({exc})'}
+		raise HTTPException(status_code=500, detail=f'Vision analysis failed: {exc}')
 
 
 @router.get('/tips')
 async def get_tips(dosha: str = 'vata', current_user: User = Depends(get_current_user)):
 	try:
-		return {'tips': prakriti_service.get_dosha_tips(dosha, count=3)}
-	except Exception:
-		return {'tips': ['Drink warm water every morning', 'Maintain regular meal times', 'Sleep before 10:30 PM']}
+		return success_response({'tips': prakriti_service.get_dosha_tips(dosha, count=3)}, 'Tips loaded')
+	except Exception as exc:
+		raise HTTPException(status_code=500, detail=f'Unable to load tips: {exc}')

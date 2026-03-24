@@ -1,13 +1,13 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.database import get_db
 from app.models.user import User
 from app.models.prakriti import PrakritiProfile
 from app.models.recommendation import RecommendationSession
-from app.schemas.schemas import RecommendationRequest, RecommendationSessionResponse
-from app.dependencies import get_current_user
+from app.schemas.schemas import RecommendationRequest
+from app.dependencies import get_current_user, success_response, resolve_language
 from app.services.recommendation_service import RecommendationService
 from app.services.weather_service import WeatherService
 
@@ -16,8 +16,8 @@ recommendation_service = RecommendationService()
 ws = WeatherService()
 
 
-@router.post('/generate', response_model=RecommendationSessionResponse)
-async def generate(req: RecommendationRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+@router.post('/generate')
+async def generate(req: RecommendationRequest, request: Request, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
 	try:
 		p_result = await db.execute(select(PrakritiProfile).where(PrakritiProfile.user_id == current_user.id).order_by(PrakritiProfile.completed_at.desc()))
 		profile = p_result.scalars().first()
@@ -41,7 +41,8 @@ async def generate(req: RecommendationRequest, current_user: User = Depends(get_
 			suffix = ', please vary the suggestions from previous recommendations'
 			free_text = (free_text or '') + suffix
 
-		ai_response = await recommendation_service.generate_recommendation(dosha, vata, pitta, kapha, season, req.symptoms, history_data, free_text, current_user.language)
+		language = resolve_language(request, current_user.language)
+		ai_response = await recommendation_service.generate_recommendation(dosha, vata, pitta, kapha, season, req.symptoms, history_data, free_text, language)
 		session = RecommendationSession(
 			user_id=current_user.id,
 			symptoms={'items': req.symptoms},
@@ -54,7 +55,7 @@ async def generate(req: RecommendationRequest, current_user: User = Depends(get_
 		await db.commit()
 		await db.refresh(session)
 		session.symptoms = req.symptoms
-		return session
+		return success_response(session, 'Recommendation generated')
 	except Exception as exc:
 		await db.rollback()
 		raise HTTPException(status_code=500, detail=f'Unable to generate recommendation: {exc}')
@@ -69,12 +70,12 @@ async def get_history(page: int = 1, limit: int = 10, current_user: User = Depen
 		for session in sessions:
 			if isinstance(session.symptoms, dict):
 				session.symptoms = session.symptoms.get('items', [])
-		return sessions
-	except Exception:
-		return []
+		return success_response(sessions, 'Recommendation history loaded')
+	except Exception as exc:
+		raise HTTPException(status_code=500, detail=f'Unable to load recommendation history: {exc}')
 
 
-@router.get('/{id}', response_model=RecommendationSessionResponse)
+@router.get('/{id}')
 async def get_rec(id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
 	try:
 		try:
@@ -87,7 +88,7 @@ async def get_rec(id: str, current_user: User = Depends(get_current_user), db: A
 			raise HTTPException(status_code=404)
 		if isinstance(session.symptoms, dict):
 			session.symptoms = session.symptoms.get('items', [])
-		return session
+		return success_response(session, 'Recommendation loaded')
 	except HTTPException:
 		raise
 	except Exception as exc:
@@ -107,7 +108,7 @@ async def delete_rec(id: str, current_user: User = Depends(get_current_user), db
 			raise HTTPException(status_code=404)
 		await db.delete(session)
 		await db.commit()
-		return {'status': 'deleted'}
+		return success_response({'status': 'deleted'}, 'Recommendation deleted')
 	except HTTPException:
 		raise
 	except Exception as exc:
@@ -127,8 +128,6 @@ async def prevention(data: dict, current_user: User = Depends(get_current_user),
 		if profile:
 			dosha = profile.dominant_dosha
 		plan = recommendation_service.generate_prevention_plan(location=location, risk_score=risk_score, dosha=dosha, season=ws.get_current_season())
-		return {'plan': plan}
-	except Exception:
-		return {
-			'plan': f'30-day prevention plan for {location}: maintain regular sleep, follow dosha-balanced diet for {dosha}, use daily pranayama, and monitor weekly risk at {risk_score}/100.'
-		}
+		return success_response({'plan': plan}, 'Prevention plan generated')
+	except Exception as exc:
+		raise HTTPException(status_code=500, detail=f'Unable to generate prevention plan: {exc}')

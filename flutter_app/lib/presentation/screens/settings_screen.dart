@@ -3,9 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../core/i18n/language_map.dart';
 import '../../services/api_service.dart';
 import '../../services/hive_service.dart';
 import '../cubits/auth_cubit.dart';
+import '../cubits/language_cubit.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -15,32 +17,23 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final List<String> _languages = <String>['English', 'Tamil', 'Hindi', 'Telugu'];
-  final Map<String, String> _languageCodeMap = <String, String>{
-    'English': 'en',
-    'Tamil': 'ta',
-    'Hindi': 'hi',
-    'Telugu': 'te',
-  };
-
-  late String _selectedLanguage;
   late bool _notifications;
 
   @override
   void initState() {
     super.initState();
-    _selectedLanguage = (HiveService.getSetting('language')?.toString() ?? 'English');
     _notifications = (HiveService.getSetting('notifications') as bool?) ?? true;
   }
 
-  Future<void> _saveLanguage(String language) async {
-    final String code = _languageCodeMap[language] ?? 'en';
-    await HiveService.saveSettings('language', language);
-    await HiveService.saveSettings('language_code', code);
+  Future<void> _saveLanguage(String code) async {
+    await context.read<LanguageCubit>().setLanguage(code);
     try {
       await ApiService.instance.put('/auth/me', <String, dynamic>{'language': code});
     } catch (_) {
-      // Silent fail: local preference should still persist.
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('cache_clear_failed'))));
     }
   }
 
@@ -55,7 +48,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unable to reset quiz right now')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('unable_reset_quiz'))));
     }
   }
 
@@ -66,43 +59,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cache cleared')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('cache_cleared'))));
     } catch (_) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to clear cache')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('cache_clear_failed'))));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final String selectedCode = context.select((LanguageCubit cubit) => cubit.state.languageCode);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(context.t('settings'))),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const Text('Language'),
+            Text(context.t('language')),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
-              value: _selectedLanguage,
-              items: _languages.map((String l) => DropdownMenuItem<String>(value: l, child: Text(l))).toList(),
-              onChanged: (String? value) async {
-                if (value == null) {
+              value: selectedCode,
+              items: AppText.supportedLanguages
+                  .map((Map<String, String> language) => DropdownMenuItem<String>(
+                        value: language['code'],
+                        child: Text(language['name'] ?? ''),
+                      ))
+                  .toList(),
+              onChanged: (String? code) async {
+                if (code == null) {
                   return;
                 }
-                setState(() {
-                  _selectedLanguage = value;
-                });
-                await _saveLanguage(value);
+                await _saveLanguage(code);
               },
             ),
             const SizedBox(height: 16),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Notifications'),
+              title: Text(context.t('notifications')),
               value: _notifications,
               onChanged: (bool value) async {
                 setState(() {
@@ -115,20 +112,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.replay_circle_filled_outlined),
-              title: const Text('Retake Prakriti Quiz'),
+              title: Text(context.t('retake_quiz')),
               onTap: _retakeQuiz,
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.cleaning_services_outlined),
-              title: const Text('Clear Cache'),
+              title: Text(context.t('clear_cache')),
               onTap: _clearCache,
             ),
-            const ListTile(
+            ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.info_outline),
-              title: Text('About'),
-              subtitle: Text('PrakritiOS v1.0.0'),
+              leading: const Icon(Icons.info_outline),
+              title: Text(context.t('about')),
+              subtitle: const Text('PrakritiOS v1.0.0'),
             ),
             const Spacer(),
             SizedBox(
@@ -146,7 +143,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   context.go('/login');
                 },
                 icon: const Icon(Icons.logout),
-                label: const Text('Sign Out'),
+                label: Text(context.t('sign_out')),
               ),
             ),
           ],

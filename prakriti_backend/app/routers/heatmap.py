@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, success_response
 from app.models.district import DistrictRisk
 from app.models.user import User
 from app.schemas.schemas import DistrictRiskResponse
@@ -59,25 +59,25 @@ async def _ensure_seeded(db: AsyncSession) -> None:
     await db.commit()
 
 
-@router.get('/districts', response_model=list[DistrictRiskResponse])
+@router.get('/districts')
 async def get_districts(condition: str | None = None, season: str | None = None, db: AsyncSession = Depends(get_db)):
     try:
         await _ensure_seeded(db)
         stmt = select(DistrictRisk)
         rows = (await db.execute(stmt.order_by(DistrictRisk.risk_score.desc()))).scalars().all()
-        return heatmap_service.filter_districts(rows, condition=condition, season=season)
-    except Exception:
-        return []
+        return success_response(heatmap_service.filter_districts(rows, condition=condition, season=season), 'District risks loaded')
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f'Unable to load districts: {exc}')
 
 
-@router.get('/state/{state_id}', response_model=DistrictRiskResponse)
+@router.get('/state/{state_id}')
 async def get_state(state_id: str, db: AsyncSession = Depends(get_db)):
     try:
         await _ensure_seeded(db)
         row = (await db.execute(select(DistrictRisk).where(DistrictRisk.state_code == state_id))).scalars().first()
         if not row:
             raise HTTPException(status_code=404, detail='State not found')
-        return row
+        return success_response(row, 'State risk loaded')
     except HTTPException:
         raise
     except Exception as exc:
@@ -92,21 +92,21 @@ async def get_trend(state_id: str, db: AsyncSession = Depends(get_db)):
         if not row:
             raise HTTPException(status_code=404, detail='State not found')
         monthly = row.monthly_cases if isinstance(row.monthly_cases, list) else list(row.monthly_cases.values())
-        return {'months': ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], 'cases': monthly[:6]}
+        return success_response({'months': ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], 'cases': monthly[:6]}, 'State trend loaded')
     except HTTPException:
         raise
-    except Exception:
-        return {'months': ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], 'cases': [60, 64, 70, 75, 82, 91]}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f'Unable to load state trend: {exc}')
 
 
-@router.get('/rising', response_model=list[DistrictRiskResponse])
+@router.get('/rising')
 async def get_rising(limit: int = 5, db: AsyncSession = Depends(get_db)):
     try:
         await _ensure_seeded(db)
         stmt = select(DistrictRisk).where(DistrictRisk.trend == 'rising').order_by(DistrictRisk.risk_score.desc()).limit(limit)
-        return (await db.execute(stmt)).scalars().all()
-    except Exception:
-        return []
+        return success_response((await db.execute(stmt)).scalars().all(), 'Rising districts loaded')
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f'Unable to load rising districts: {exc}')
 
 
 @router.post('/refresh')
@@ -122,7 +122,7 @@ async def refresh(current_user: User = Depends(get_current_user), db: AsyncSessi
             await heatmap_service.refresh_risk(row)
             updated += 1
         await db.commit()
-        return {'updated': updated, 'timestamp': datetime.utcnow().isoformat()}
+        return success_response({'updated': updated, 'timestamp': datetime.utcnow().isoformat()}, 'Heatmap refreshed')
     except Exception as exc:
         await db.rollback()
-        return {'updated': 0, 'timestamp': datetime.utcnow().isoformat(), 'error': str(exc)}
+        raise HTTPException(status_code=500, detail=f'Unable to refresh heatmap: {exc}')

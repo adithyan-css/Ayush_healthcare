@@ -12,8 +12,12 @@ python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
 fpdf2
+reportlab
 httpx
 alembic
 python-dotenv
 pillow
 aiofiles
+transformers
+torch
+google-generativeai

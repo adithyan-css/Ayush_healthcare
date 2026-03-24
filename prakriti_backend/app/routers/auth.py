@@ -1,4 +1,5 @@
-from typing import Dict, Optional
+from typing import Optional
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from jose import JWTError, jwt, ExpiredSignatureError
 from pydantic import BaseModel
@@ -6,14 +7,15 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.database import get_db
-from app.dependencies import get_current_user, oauth2_scheme, redis_client
+from app.dependencies import get_current_user, oauth2_scheme, redis_client, success_response, serialize_user
 from app.config import settings
 from app.models.user import User
-from app.schemas.schemas import UserResponse, AuthRegisterRequest, AuthLoginRequest, AuthTokenResponse
+from app.schemas.schemas import AuthRegisterRequest, AuthLoginRequest
 from app.services.auth_service import AuthService
 
 router = APIRouter()
 auth_service = AuthService()
+logger = logging.getLogger('prakriti_backend')
 
 
 async def _ensure_password_hash_column(db: AsyncSession) -> None:
@@ -41,7 +43,7 @@ def create_refresh_token(data: dict):
 	return auth_service.create_refresh_token(data)
 
 
-@router.post('/register', response_model=AuthTokenResponse)
+@router.post('/register')
 async def register(payload: AuthRegisterRequest, db: AsyncSession = Depends(get_db)):
 	await _ensure_password_hash_column(db)
 	result = await db.execute(select(User).where(User.email == payload.email.lower().strip()))
@@ -63,10 +65,10 @@ async def register(payload: AuthRegisterRequest, db: AsyncSession = Depends(get_
 
 	access_token = create_access_token(data={'sub': str(new_user.id)})
 	refresh_token = create_refresh_token(data={'sub': str(new_user.id)})
-	return {'access_token': access_token, 'refresh_token': refresh_token, 'token_type': 'bearer'}
+	return success_response({'access_token': access_token, 'refresh_token': refresh_token, 'token_type': 'bearer'}, 'Registered successfully')
 
 
-@router.post('/login', response_model=AuthTokenResponse)
+@router.post('/login')
 async def login(payload: AuthLoginRequest, db: AsyncSession = Depends(get_db)):
 	await _ensure_password_hash_column(db)
 	result = await db.execute(select(User).where(User.email == payload.email.lower().strip()))
@@ -79,27 +81,7 @@ async def login(payload: AuthLoginRequest, db: AsyncSession = Depends(get_db)):
 
 	access_token = create_access_token(data={'sub': str(user.id)})
 	refresh_token = create_refresh_token(data={'sub': str(user.id)})
-	return {'access_token': access_token, 'refresh_token': refresh_token, 'token_type': 'bearer'}
-
-
-@router.post('/firebase-verify')
-async def verify(data: Dict, db: AsyncSession = Depends(get_db)):
-	try:
-		firebase_uid = data.get('firebase_uid', 'mock_uid')
-		email = data.get('email', 'mock@example.com')
-		display_name = data.get('display_name', 'User')
-		result = await db.execute(select(User).where(User.firebase_uid == firebase_uid))
-		user = result.scalars().first()
-		if not user:
-			user = User(firebase_uid=firebase_uid, email=email, display_name=display_name)
-			db.add(user)
-			await db.commit()
-			await db.refresh(user)
-		access_token = create_access_token(data={'sub': str(user.id)})
-		refresh_token = create_refresh_token(data={'sub': str(user.id)})
-		return {'access_token': access_token, 'refresh_token': refresh_token, 'token_type': 'bearer'}
-	except Exception as exc:
-		raise HTTPException(status_code=500, detail=f'Auth verification failed: {exc}')
+	return success_response({'access_token': access_token, 'refresh_token': refresh_token, 'token_type': 'bearer'}, 'Login successful')
 
 
 @router.post('/refresh')
@@ -112,7 +94,7 @@ async def refresh(payload: RefreshRequest):
 		if not sub:
 			raise HTTPException(status_code=401, detail='Invalid refresh token')
 		token = create_access_token(data={'sub': sub})
-		return {'access_token': token, 'token_type': 'bearer'}
+		return success_response({'access_token': token, 'token_type': 'bearer'}, 'Token refreshed')
 	except ExpiredSignatureError:
 		raise HTTPException(status_code=401, detail='Refresh token expired')
 	except JWTError:
@@ -123,17 +105,17 @@ async def refresh(payload: RefreshRequest):
 async def logout(token: str = Depends(oauth2_scheme)):
 	try:
 		await redis_client.setex(f'blacklist:{token}', 3600, 'true')
-	except Exception:
-		pass
-	return {'msg': 'Logged out successfully'}
+	except Exception as exc:
+		logger.warning('Failed to blacklist token during logout: %s', exc)
+	return success_response({}, 'Logged out successfully')
 
 
-@router.get('/me', response_model=UserResponse)
+@router.get('/me')
 async def get_me(current_user: User = Depends(get_current_user)):
-	return current_user
+	return success_response(serialize_user(current_user), 'Current user loaded')
 
 
-@router.put('/me', response_model=UserResponse)
+@router.put('/me')
 async def update_me(payload: UpdateMeRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
 	try:
 		if payload.display_name is not None:
@@ -142,7 +124,7 @@ async def update_me(payload: UpdateMeRequest, current_user: User = Depends(get_c
 			current_user.language = payload.language
 		await db.commit()
 		await db.refresh(current_user)
-		return current_user
+		return success_response(serialize_user(current_user), 'Profile updated')
 	except Exception as exc:
 		await db.rollback()
 		raise HTTPException(status_code=500, detail=f'Profile update failed: {exc}')

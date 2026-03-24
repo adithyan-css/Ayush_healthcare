@@ -67,6 +67,40 @@ class HiveService {
 		await _settingsBox.put(key, value);
 	}
 
+	static String normalizeLanguageCode(dynamic value) {
+		final String source = (value ?? '').toString().toLowerCase().trim();
+		switch (source) {
+			case 'en':
+			case 'english':
+				return 'en';
+			case 'ta':
+			case 'tamil':
+				return 'ta';
+			case 'hi':
+			case 'hindi':
+				return 'hi';
+			case 'ja':
+			case 'japanese':
+				return 'ja';
+			default:
+				return 'en';
+		}
+	}
+
+	static Future<void> saveLanguageCode(String code) async {
+		final String normalized = normalizeLanguageCode(code);
+		await _settingsBox.put('language_code', normalized);
+	}
+
+	static String getLanguageCode() {
+		final dynamic direct = _settingsBox.get('language_code');
+		if (direct != null) {
+			return normalizeLanguageCode(direct);
+		}
+		final dynamic legacy = _settingsBox.get('language');
+		return normalizeLanguageCode(legacy);
+	}
+
 	static dynamic getSetting(String key) {
 		final value = _settingsBox.get(key);
 		if (value is String && (value.startsWith('{') || value.startsWith('['))) {

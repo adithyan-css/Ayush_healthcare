@@ -10,9 +10,11 @@ import 'core/theme.dart';
 import 'presentation/cubits/auth_cubit.dart';
 import 'presentation/cubits/forecast_cubit.dart';
 import 'presentation/cubits/heatmap_cubit.dart';
+import 'presentation/cubits/language_cubit.dart';
 import 'presentation/cubits/prakriti_cubit.dart';
 import 'presentation/cubits/recommendation_cubit.dart';
 import 'presentation/cubits/wearable_cubit.dart';
+import 'core/i18n/language_map.dart';
 import 'presentation/screens/forecast_screen.dart';
 import 'presentation/screens/heatmap_screen.dart';
 import 'presentation/screens/home_screen.dart';
@@ -95,17 +97,22 @@ class PrakritiApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: <BlocProvider<dynamic>>[
         BlocProvider<AuthCubit>(create: (_) => AuthCubit()),
+        BlocProvider<LanguageCubit>(create: (_) => LanguageCubit()..loadSavedLanguage()),
         BlocProvider<PrakritiCubit>(create: (_) => PrakritiCubit()),
         BlocProvider<RecommendationCubit>(create: (_) => RecommendationCubit()),
         BlocProvider<HeatmapCubit>(create: (_) => HeatmapCubit()),
         BlocProvider<ForecastCubit>(create: (_) => ForecastCubit()),
         BlocProvider<WearableCubit>(create: (_) => WearableCubit()),
       ],
-      child: MaterialApp.router(
-        title: 'PrakritiOS',
-        theme: AppTheme.lightTheme,
-        debugShowCheckedModeBanner: false,
-        routerConfig: router,
+      child: Builder(
+        builder: (BuildContext context) => BlocBuilder<LanguageCubit, LanguageState>(
+          builder: (BuildContext context, LanguageState state) => MaterialApp.router(
+            title: AppText.byCode('app_name', state.languageCode),
+            theme: AppTheme.lightTheme,
+            debugShowCheckedModeBanner: false,
+            routerConfig: router,
+          ),
+        ),
       ),
     );
   }
