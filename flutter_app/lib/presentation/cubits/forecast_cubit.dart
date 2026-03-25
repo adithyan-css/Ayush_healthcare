@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:printing/printing.dart';
-import '../../services/api_service.dart';
-import '../../services/hive_service.dart';
+import '../../data/repositories/forecast_repository.dart';
 
 abstract class ForecastState {}
 
@@ -24,40 +23,15 @@ class ForecastError extends ForecastState {
 class ForecastCubit extends Cubit<ForecastState> {
 	ForecastCubit() : super(ForecastInitial());
 
-	final ApiService _api = ApiService.instance;
-
-	dynamic _extractData(dynamic response) {
-		if (response is Map<String, dynamic>) {
-			return response['data'] ?? response;
-		}
-		return response;
-	}
+	final ForecastRepository _repo = ForecastRepository();
 
 	Future<void> loadForecast() async {
 		emit(ForecastLoading());
 		try {
-			final results = await Future.wait([
-				_api.get('/forecast/national'),
-				_api.get('/forecast/regions'),
-				_api.get('/forecast/population'),
-				_api.get('/forecast/seasonal'),
-			]);
-
-			final dynamic national = _extractData(results[0]);
-			final dynamic regions = _extractData(results[1]);
-			final dynamic population = _extractData(results[2]);
-			final dynamic seasonal = _extractData(results[3]);
-
-			final merged = {
-				'conditions': (national as Map)['conditions'],
-				'region_cards': regions,
-				'population_risks': population,
-				'seasonal': seasonal,
-			};
-			await HiveService.saveForecast(Map<String, dynamic>.from(merged));
-			emit(ForecastLoaded(Map<String, dynamic>.from(merged)));
+			final Map<String, dynamic> merged = await _repo.loadDashboard();
+			emit(ForecastLoaded(merged));
 		} catch (e) {
-			final cached = HiveService.getForecast();
+			final cached = _repo.getCachedDashboard();
 			if (cached != null) {
 				emit(ForecastLoaded(cached));
 			} else {
@@ -68,9 +42,8 @@ class ForecastCubit extends Cubit<ForecastState> {
 
 	Future<void> generateBulletin(String districtId) async {
 		try {
-			final response = await _api.post('/forecast/bulletin', {'district_id': districtId});
-			final dynamic data = _extractData(response);
-			final b64 = ((data is Map ? data['pdf_base64'] : null) ?? '').toString();
+			final Map<String, dynamic> data = await _repo.bulletin(districtId);
+			final String b64 = (data['pdf_base64'] ?? '').toString();
 			if (b64.isEmpty) throw Exception('Empty PDF');
 			final bytes = base64Decode(b64);
 			await Printing.sharePdf(bytes: Uint8List.fromList(bytes), filename: 'prakriti_bulletin_$districtId.pdf');

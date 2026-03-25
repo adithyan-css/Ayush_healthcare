@@ -27,6 +27,11 @@ async def report(req: SymptomReportRequest, current_user: User = Depends(get_cur
     return success_response({}, 'Symptoms logged')
 
 
+@router.post('/community/report')
+async def community_report(req: SymptomReportRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    return await report(req=req, current_user=current_user, db=db)
+
+
 @router.get('/community')
 async def community(days: int = 7, db: AsyncSession = Depends(get_db)):
     since = datetime.now(timezone.utc) - timedelta(days=max(days, 1))
@@ -83,6 +88,13 @@ async def clusters(days: int = 7, db: AsyncSession = Depends(get_db)):
     return success_response({'clusters': clustered[:12]}, 'Clusters loaded')
 
 
+@router.get('/community/hotspots')
+async def community_hotspots(days: int = 7, db: AsyncSession = Depends(get_db)):
+    cluster_payload = await clusters(days=days, db=db)
+    data = cluster_payload.get('data', {}) if isinstance(cluster_payload, dict) else {}
+    return success_response({'hotspots': data.get('clusters', [])}, 'Community hotspots loaded')
+
+
 @router.get('/trending')
 async def trending(days: int = 7, db: AsyncSession = Depends(get_db)):
     since = datetime.now(timezone.utc) - timedelta(days=max(days, 1))
@@ -102,3 +114,15 @@ async def trending(days: int = 7, db: AsyncSession = Depends(get_db)):
         'days': max(days, 1),
         'top': [{'symptom': symptom, 'count': count} for symptom, count in counter.most_common(5)],
     }, 'Trending symptoms loaded')
+
+
+@router.get('/community/alerts')
+async def community_alerts(days: int = 7, db: AsyncSession = Depends(get_db)):
+    trend_payload = await trending(days=days, db=db)
+    trend_data = trend_payload.get('data', {}) if isinstance(trend_payload, dict) else {}
+    alerts = []
+    for item in trend_data.get('top', []):
+        count = int(item.get('count', 0))
+        severity = 'high' if count >= 20 else 'medium' if count >= 10 else 'low'
+        alerts.append({'symptom': item.get('symptom', ''), 'count': count, 'severity': severity})
+    return success_response({'days': max(days, 1), 'alerts': alerts}, 'Community alerts loaded')

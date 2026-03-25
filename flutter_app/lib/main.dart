@@ -22,6 +22,7 @@ import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/nadi_monitor_screen.dart';
 import 'presentation/screens/prakriti_quiz_screen.dart';
 import 'presentation/screens/prakriti_result_screen.dart';
+import 'presentation/screens/prevention_plan_screen.dart';
 import 'presentation/screens/recommendation_result_screen.dart';
 import 'presentation/screens/register_screen.dart';
 import 'presentation/screens/settings_screen.dart';
@@ -29,6 +30,8 @@ import 'presentation/screens/splash_screen.dart';
 import 'presentation/screens/state_detail_screen.dart';
 import 'presentation/screens/symptom_selection_screen.dart';
 import 'presentation/screens/vaidya_copilot_screen.dart';
+
+const bool kDemoBypassAuth = bool.fromEnvironment('DEMO_BYPASS_AUTH', defaultValue: false);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +59,9 @@ class PrakritiApp extends StatelessWidget {
     final GoRouter router = GoRouter(
       initialLocation: '/',
       redirect: (BuildContext context, GoRouterState state) {
+        if (kDemoBypassAuth) {
+          return null;
+        }
         final String? jwt = Hive.box('settings').get('jwt') as String?;
         final bool hasJwt = jwt != null && jwt.isNotEmpty;
         final String path = state.matchedLocation;
@@ -83,6 +89,12 @@ class PrakritiApp extends StatelessWidget {
         GoRoute(path: '/recommend/symptoms', builder: (BuildContext context, GoRouterState state) => const SymptomSelectionScreen()),
         GoRoute(path: '/symptoms', builder: (BuildContext context, GoRouterState state) => const SymptomSelectionScreen()),
         GoRoute(path: '/recommend/result', builder: (BuildContext context, GoRouterState state) => const RecommendationResultScreen()),
+        GoRoute(
+          path: '/prevention-plan',
+          builder: (BuildContext context, GoRouterState state) => PreventionPlanScreen(
+            plan: (state.extra as String?) ?? '',
+          ),
+        ),
         GoRoute(path: '/recommendations', builder: (BuildContext context, GoRouterState state) => const RecommendationResultScreen()),
         GoRoute(path: '/heatmap', builder: (BuildContext context, GoRouterState state) => const HeatmapScreen()),
         GoRoute(

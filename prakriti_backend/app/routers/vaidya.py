@@ -176,3 +176,39 @@ async def outcome(consult_id: str, data: dict, current_user: User = Depends(get_
     await db.refresh(consult_row)
     return success_response({'status': 'updated', 'consult_id': consult_id, 'outcome': consult_row.outcome_json}, 'Consult outcome updated')
 
+
+@router.get('/reports')
+async def reports(patient_uid: str | None = None, limit: int = 20, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user.role != 'doctor':
+        raise HTTPException(status_code=403, detail='Doctor access only')
+
+    stmt = select(VaidyaConsult).where(VaidyaConsult.doctor_id == current_user.id).order_by(VaidyaConsult.created_at.desc()).limit(max(1, min(limit, 100)))
+
+    if patient_uid:
+        try:
+            patient_id = uuid.UUID(patient_uid)
+        except ValueError:
+            raise HTTPException(status_code=400, detail='Invalid patient id')
+        stmt = (
+            select(VaidyaConsult)
+            .where(VaidyaConsult.doctor_id == current_user.id, VaidyaConsult.patient_id == patient_id)
+            .order_by(VaidyaConsult.created_at.desc())
+            .limit(max(1, min(limit, 100)))
+        )
+
+    consults = (await db.scalars(stmt)).all()
+    payload = [
+        {
+            'consult_id': str(item.id),
+            'patient_id': str(item.patient_id),
+            'symptoms': item.symptoms,
+            'status': item.status,
+            'suggestion': item.suggestion_json,
+            'outcome': item.outcome_json,
+            'created_at': item.created_at.isoformat() if item.created_at else None,
+            'updated_at': item.updated_at.isoformat() if item.updated_at else None,
+        }
+        for item in consults
+    ]
+    return success_response(payload, 'Vaidya reports loaded')
+

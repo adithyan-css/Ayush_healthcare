@@ -1,13 +1,8 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:printing/printing.dart';
 
 import '../../core/i18n/language_map.dart';
-import '../../services/api_service.dart';
 import '../cubits/forecast_cubit.dart';
 
 class ForecastScreen extends StatefulWidget {
@@ -33,25 +28,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
   }
 
   Future<void> _generateBulletin() async {
-    try {
-      final dynamic response = await ApiService.instance.post('/forecast/bulletin', <String, dynamic>{'district_id': 'MH'});
-      final String b64 = (response['pdf_base64'] ?? '').toString();
-      if (b64.isEmpty) {
-        if (!mounted) {
-          return;
-        }
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bulletin generated successfully')));
-        return;
-      }
-
-      final Uint8List bytes = Uint8List.fromList(base64Decode(b64));
-      await Printing.sharePdf(bytes: bytes, filename: 'prakriti_bulletin_MH.pdf');
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unable to generate bulletin right now')));
-    }
+    await context.read<ForecastCubit>().generateBulletin('MH');
   }
 
   Color _severityColor(String severity) {

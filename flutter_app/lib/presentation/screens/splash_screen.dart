@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/i18n/language_map.dart';
 import '../../services/hive_service.dart';
+import '../../main.dart';
 import '../cubits/auth_cubit.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -29,6 +30,18 @@ class _SplashScreenState extends State<SplashScreen> {
 	@override
 	void initState() {
 		super.initState();
+		if (kDemoBypassAuth) {
+			Future.delayed(const Duration(seconds: 1), () {
+				if (!mounted) return;
+				if (HiveService.hasPrakritiProfile()) {
+					context.go('/home');
+				} else {
+					context.go('/prakriti/quiz');
+				}
+			});
+			return;
+		}
+
 		Future.delayed(const Duration(seconds: 2), () {
 			if (!_delayCompleter.isCompleted) _delayCompleter.complete();
 			_handleNavigation();

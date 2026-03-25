@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../services/api_service.dart';
-import '../../services/hive_service.dart';
+import '../../data/repositories/prakriti_repository.dart';
 
 abstract class PrakritiState {}
 
@@ -32,7 +31,7 @@ class PrakritiError extends PrakritiState {
 class PrakritiCubit extends Cubit<PrakritiState> {
 	PrakritiCubit() : super(PrakritiInitial());
 
-	final ApiService _api = ApiService.instance;
+	final PrakritiRepository _repo = PrakritiRepository();
 	List<dynamic> _questions = [];
 	final Map<String, int> _answers = {'vata': 0, 'pitta': 0, 'kapha': 0};
 	int _answeredCount = 0;
@@ -97,15 +96,14 @@ class PrakritiCubit extends Cubit<PrakritiState> {
 	Future<void> saveProfile(Map profile) async {
 		emit(PrakritiLoading());
 		try {
-			final payload = {
+			final Map<String, dynamic> payload = {
 				'vata_score': (profile['vata_score'] ?? 0).toDouble(),
 				'pitta_score': (profile['pitta_score'] ?? 0).toDouble(),
 				'kapha_score': (profile['kapha_score'] ?? 0).toDouble(),
 				'dominant_dosha': profile['dominant_dosha'],
 				'risk_score': (profile['risk_score'] ?? 0).toDouble(),
 			};
-			await _api.post('/prakriti/profile', payload);
-			await HiveService.savePrakritiProfile(Map<String, dynamic>.from(profile));
+			await _repo.saveProfile(payload);
 			emit(PrakritiCompleted(Map<String, dynamic>.from(profile)));
 		} catch (e) {
 			emit(PrakritiError('Failed to save profile: $e'));
@@ -115,14 +113,8 @@ class PrakritiCubit extends Cubit<PrakritiState> {
 	Future<void> loadProfile() async {
 		emit(PrakritiLoading());
 		try {
-			final local = HiveService.getPrakritiProfile();
-			if (local != null) {
-				emit(PrakritiCompleted(local));
-				return;
-			}
-			final remote = await _api.get('/prakriti/profile');
-			await HiveService.savePrakritiProfile(Map<String, dynamic>.from(remote as Map));
-			emit(PrakritiCompleted(Map<String, dynamic>.from(remote)));
+			final Map<String, dynamic> profile = await _repo.loadProfile();
+			emit(PrakritiCompleted(profile));
 		} catch (e) {
 			emit(PrakritiError('Failed to load profile: $e'));
 		}

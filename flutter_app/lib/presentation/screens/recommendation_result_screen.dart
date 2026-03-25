@@ -317,17 +317,30 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-                child: ExpansionTile(
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  backgroundColor: Colors.blue.shade50,
-                  collapsedBackgroundColor: Colors.blue.shade50,
-                  title: Text(context.t('prevention_30_day_plan'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Column(
                   children: <Widget>[
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(prevention),
+                    ExpansionTile(
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: Colors.blue.shade50,
+                      collapsedBackgroundColor: Colors.blue.shade50,
+                      title: Text(context.t('prevention_30_day_plan'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      children: <Widget>[
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(prevention),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => context.push('/prevention-plan', extra: prevention),
+                        icon: const Icon(Icons.calendar_month),
+                        label: Text(context.t('view_full_plan')),
+                      ),
                     ),
                   ],
                 ),

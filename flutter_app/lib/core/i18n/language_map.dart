@@ -66,6 +66,7 @@ class AppText {
     'prevention_30_day_plan': <String, String>{'en': '30-Day Prevention Plan', 'ta': '30 நாள் தடுப்பு திட்டம்', 'hi': '30-दिवसीय रोकथाम योजना', 'ja': '30日予防プラン'},
     'download_report': <String, String>{'en': 'Download Report', 'ta': 'அறிக்கையை பதிவிறக்கு', 'hi': 'रिपोर्ट डाउनलोड करें', 'ja': 'レポートをダウンロード'},
     'regenerate': <String, String>{'en': 'Regenerate', 'ta': 'மீண்டும் உருவாக்கு', 'hi': 'पुनः जेनरेट करें', 'ja': '再生成'},
+    'view_full_plan': <String, String>{'en': 'View Full Plan', 'ta': 'முழு திட்டத்தை காண்க', 'hi': 'पूरा प्लान देखें', 'te': 'పూర్తి ప్లాన్ చూడండి', 'ja': '全体プランを見る'},
     'condition': <String, String>{'en': 'Condition', 'ta': 'நிலை', 'hi': 'स्थिति', 'ja': '状態'},
     'bulletin': <String, String>{'en': 'Bulletin', 'ta': 'புல்லட்டின்', 'hi': 'बुलेटिन', 'ja': '速報'},
     'seasonal_advisory': <String, String>{'en': 'Seasonal Advisory', 'ta': 'பருவ ஆலோசனை', 'hi': 'मौसमी सलाह', 'ja': '季節アドバイス'},
@@ -85,6 +86,12 @@ class AppText {
     'symptoms_hint': <String, String>{'en': 'fever, cough, acidity', 'ta': 'காய்ச்சல், இருமல், அமிலம்', 'hi': 'बुखार, खांसी, एसिडिटी', 'ja': '発熱、咳、胃酸'},
     'loading': <String, String>{'en': 'Loading...', 'ta': 'ஏற்றப்படுகிறது...', 'hi': 'लोड हो रहा है...', 'ja': '読み込み中...'},
     'get_ai_suggestion': <String, String>{'en': 'Get AI Suggestion', 'ta': 'AI பரிந்துரை பெற', 'hi': 'AI सुझाव प्राप्त करें', 'ja': 'AI提案を取得'},
+    'community_radar': <String, String>{'en': 'Community Radar', 'ta': 'சமூக ரேடார்', 'hi': 'कम्युनिटी रडार', 'te': 'కమ్యూనిటీ రాడార్', 'ja': 'コミュニティレーダー'},
+    'report_community_symptoms': <String, String>{'en': 'Report community symptoms', 'ta': 'சமூக அறிகுறிகளை பதிவு செய்க', 'hi': 'समुदाय लक्षण रिपोर्ट करें', 'te': 'సమాజ లక్షణాలను నివేదించండి', 'ja': '地域症状を報告'},
+    'submit_report': <String, String>{'en': 'Submit Report', 'ta': 'அறிக்கையை சமர்ப்பிக்கவும்', 'hi': 'रिपोर्ट जमा करें', 'te': 'రిపోర్ట్ సమర్పించండి', 'ja': 'レポート送信'},
+    'state_detail': <String, String>{'en': 'State Detail', 'ta': 'மாநில விவரம்', 'hi': 'राज्य विवरण', 'te': 'రాష్ట్ర వివరాలు', 'ja': '州詳細'},
+    'xai_reasoning_steps': <String, String>{'en': 'XAI Reasoning Steps', 'ta': 'XAI காரண விளக்கம் படிகள்', 'hi': 'XAI तर्क चरण', 'te': 'XAI వివరణ దశలు', 'ja': 'XAI推論ステップ'},
+    'no_explanation_available': <String, String>{'en': 'No explanation available for this district yet.', 'ta': 'இந்த மாவட்டத்திற்கு விளக்கம் இதுவரை இல்லை.', 'hi': 'इस जिले के लिए अभी व्याख्या उपलब्ध नहीं है।', 'te': 'ఈ జిల్లాకు ఇంకా వివరణ అందుబాటులో లేదు.', 'ja': 'この地区の説明はまだありません。'},
   };
 
   static String byCode(String key, String languageCode) {

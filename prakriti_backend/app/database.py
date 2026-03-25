@@ -1,11 +1,36 @@
 from datetime import datetime
 from sqlalchemy import select, func, text
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
 import redis.asyncio as redis
 from app.config import settings
 
-engine = create_async_engine(settings.DATABASE_URL, echo=False)
+
+def _create_engine_from_settings():
+	database_url = settings.DATABASE_URL
+	connect_args: dict = {}
+
+	try:
+		url = make_url(database_url)
+		if url.drivername == 'postgresql+asyncpg':
+			sslmode = url.query.get('sslmode')
+			if sslmode:
+				sslmode_value = str(sslmode).lower()
+				if sslmode_value in {'disable', 'allow', 'prefer'}:
+					connect_args['ssl'] = False
+				else:
+					connect_args['ssl'] = True
+				query_without_sslmode = dict(url.query)
+				query_without_sslmode.pop('sslmode', None)
+				database_url = str(url.set(query=query_without_sslmode))
+	except Exception:
+		pass
+
+	return create_async_engine(database_url, echo=False, connect_args=connect_args)
+
+
+engine = _create_engine_from_settings()
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
 

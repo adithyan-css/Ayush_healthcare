@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../services/api_service.dart';
+import '../../data/repositories/wearable_repository.dart';
 
 abstract class WearableState {}
 
@@ -24,18 +24,7 @@ class WearableError extends WearableState {
 class WearableCubit extends Cubit<WearableState> {
 	WearableCubit() : super(WearableInitial());
 
-	final ApiService _api = ApiService.instance;
-
-	Map<String, dynamic> _extractData(dynamic response) {
-		if (response is Map<String, dynamic>) {
-			final dynamic data = response['data'];
-			if (data is Map<String, dynamic>) {
-				return data;
-			}
-			return response;
-		}
-		return <String, dynamic>{};
-	}
+	final WearableRepository _repo = WearableRepository();
 
 	Future<void> checkAndFetch() async {
 		emit(WearableLoading());
@@ -64,9 +53,10 @@ class WearableCubit extends Cubit<WearableState> {
 			};
 
 			try {
-				await _api.post('/wearable/hrv-sync', {'readings': readings});
-				final dynamic nadiResp = await _api.get('/wearable/nadi');
-				final Map<String, dynamic> backendDiagnosis = _extractData(nadiResp);
+				await _repo.syncReadings(readings.cast<Map<String, dynamic>>());
+				final Map<String, dynamic> backendDiagnosis = await _repo.nadi();
+				await _repo.trend(days: 30);
+				await _repo.anomalies();
 				emit(WearableLoaded(readings, backendDiagnosis.isNotEmpty ? backendDiagnosis : diagnosis));
 				return;
 			} catch (_) {}
@@ -79,7 +69,7 @@ class WearableCubit extends Cubit<WearableState> {
 
 	Future<void> syncToBackend(List readings) async {
 		try {
-			await _api.post('/wearable/hrv-sync', {'readings': readings});
+			await _repo.syncReadings(readings.cast<Map<String, dynamic>>());
 		} catch (e) {
 			emit(WearableError('Failed to sync backend: $e'));
 		}
@@ -89,8 +79,8 @@ class WearableCubit extends Cubit<WearableState> {
 		if (state is! WearableLoaded) return;
 		final current = state as WearableLoaded;
 		try {
-			final data = await _api.get('/wearable/nadi');
-			emit(WearableLoaded(current.readings, _extractData(data)));
+			final Map<String, dynamic> data = await _repo.nadi();
+			emit(WearableLoaded(current.readings, data));
 		} catch (e) {
 			emit(WearableError('Failed to load nadi diagnosis: $e'));
 		}

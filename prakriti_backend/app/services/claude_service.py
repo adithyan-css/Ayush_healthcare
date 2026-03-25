@@ -127,3 +127,59 @@ class ClaudeService:
 				return parsed if isinstance(parsed, dict) else {}
 			except Exception:
 				return {}
+
+	async def generate_prevention_plan_json(
+		self,
+		*,
+		location: str,
+		risk_score: int,
+		dosha: str,
+		season: str,
+		language_name: str,
+		fallback_plan: str,
+	) -> dict[str, Any]:
+		if not self.is_configured():
+			return {'prevention_plan': fallback_plan}
+
+		prompt = (
+			'You are an Ayurvedic preventive healthcare planner. '\
+			'Return ONLY valid JSON object with exactly one key: prevention_plan. '\
+			'Do not use markdown. '\
+			f'Respond in {language_name} with a practical, day-wise 30-day plan. '\
+			f'Context: location={location}, risk_score={risk_score}, dosha={dosha}, season={season}. '\
+			'Include weekly structure, lifestyle, diet, yoga/pranayama, and warning signs to watch.'
+		)
+
+		payload = {
+			'model': self.model,
+			'max_tokens': 900,
+			'temperature': 0.2,
+			'messages': [{'role': 'user', 'content': prompt}],
+		}
+
+		headers = {
+			'x-api-key': self.api_key,
+			'anthropic-version': '2023-06-01',
+			'content-type': 'application/json',
+		}
+
+		for attempt in range(3):
+			try:
+				timeout = httpx.Timeout(18.0, connect=8.0)
+				async with httpx.AsyncClient(timeout=timeout) as client:
+					response = await client.post(self.url, headers=headers, json=payload)
+					response.raise_for_status()
+					body = response.json()
+					content = body.get('content', [])
+					text_parts = [str(item.get('text', '')) for item in content if isinstance(item, dict)]
+					raw_text = '\n'.join(text_parts).strip()
+					parsed = self._parse_json_payload(raw_text)
+					plan = str(parsed.get('prevention_plan', '')).strip() if isinstance(parsed, dict) else ''
+					if plan:
+						return {'prevention_plan': plan}
+			except Exception:
+				if attempt < 2:
+					await asyncio.sleep(0.6 * (attempt + 1))
+					continue
+
+		return {'prevention_plan': fallback_plan}

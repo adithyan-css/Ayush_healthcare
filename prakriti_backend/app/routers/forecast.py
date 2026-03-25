@@ -55,12 +55,35 @@ async def national():
         raise HTTPException(status_code=500, detail=f'Unable to load national forecast: {exc}')
 
 
+@router.get('/today')
+async def today():
+    return await national()
+
+
 @router.get('/regions')
 async def regions():
     try:
         return success_response(forecast_service.region_cards(), 'Regional forecast loaded')
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f'Unable to load regional forecast: {exc}')
+
+
+@router.get('/summary')
+async def summary():
+    national_payload = await national()
+    region_payload = await regions()
+    seasonal_payload = await seasonal()
+    national_data = national_payload.get('data', {}) if isinstance(national_payload, dict) else {}
+    region_data = region_payload.get('data', []) if isinstance(region_payload, dict) else []
+    seasonal_data = seasonal_payload.get('data', {}) if isinstance(seasonal_payload, dict) else {}
+    return success_response(
+        {
+            'national': national_data,
+            'regions': region_data,
+            'seasonal': seasonal_data,
+        },
+        'Forecast summary loaded',
+    )
 
 
 @router.get('/population')
@@ -156,6 +179,19 @@ async def bulletin(data: dict, request: Request, db: AsyncSession = Depends(get_
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f'Unable to generate bulletin: {exc}')
+
+
+@router.post('/predict')
+async def predict(data: dict | None = None):
+    payload = await summary()
+    return success_response(
+        {
+            'requested_at': datetime.utcnow().isoformat(),
+            'input': data or {},
+            'forecast': payload.get('data', {}) if isinstance(payload, dict) else {},
+        },
+        'Forecast prediction generated',
+    )
 
 
 @router.post('/refresh')

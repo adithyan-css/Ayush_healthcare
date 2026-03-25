@@ -1,6 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../services/api_service.dart';
-import '../../services/hive_service.dart';
+import '../../data/repositories/recommendation_repository.dart';
 
 abstract class RecommendationState {}
 
@@ -21,32 +20,8 @@ class RecommendationError extends RecommendationState {
 class RecommendationCubit extends Cubit<RecommendationState> {
 	RecommendationCubit() : super(RecommendationInitial());
 
-	final ApiService _api = ApiService.instance;
+	final RecommendationRepository _repo = RecommendationRepository();
 	List<String> selectedSymptoms = [];
-
-	Map<String, dynamic> _extractDataMap(dynamic response) {
-		if (response is Map<String, dynamic>) {
-			final dynamic data = response['data'];
-			if (data is Map<String, dynamic>) {
-				return data;
-			}
-			return response;
-		}
-		return <String, dynamic>{};
-	}
-
-	List<dynamic> _extractDataList(dynamic response) {
-		if (response is Map<String, dynamic>) {
-			final dynamic data = response['data'];
-			if (data is List) {
-				return data;
-			}
-		}
-		if (response is List) {
-			return response;
-		}
-		return <dynamic>[];
-	}
 
 	void toggleSymptom(String symptom) {
 		if (selectedSymptoms.contains(symptom)) {
@@ -67,13 +42,7 @@ class RecommendationCubit extends Cubit<RecommendationState> {
 	Future<void> generateRecommendation(String? freeText) async {
 		emit(RecommendationLoading());
 		try {
-			final dynamic response = await _api.post('/recommendations/generate', {
-				'symptoms': selectedSymptoms,
-				'free_text': freeText,
-			});
-			final mapped = _extractDataMap(response);
-			await HiveService.saveSession(mapped);
-			await HiveService.clearOldSessions();
+			final Map<String, dynamic> mapped = await _repo.generate(symptoms: selectedSymptoms, freeText: freeText);
 			emit(RecommendationLoaded(mapped));
 		} catch (e) {
 			emit(RecommendationError('Failed to generate recommendation: $e'));
@@ -82,10 +51,9 @@ class RecommendationCubit extends Cubit<RecommendationState> {
 
 	Future<List<dynamic>> loadHistory() async {
 		try {
-			final dynamic history = await _api.get('/recommendations/history');
-			return _extractDataList(history);
+			return await _repo.history();
 		} catch (_) {
-			return HiveService.getSessions();
+			return <dynamic>[];
 		}
 	}
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/i18n/language_map.dart';
-import '../../services/api_service.dart';
+import '../../data/repositories/vaidya_repository.dart';
 import '../../services/hive_service.dart';
 
 class VaidyaCopilotScreen extends StatefulWidget {
@@ -14,21 +14,24 @@ class VaidyaCopilotScreen extends StatefulWidget {
 class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 	final _searchController = TextEditingController();
 	final _symptomsController = TextEditingController();
-	final _api = ApiService.instance;
+	final _repo = VaidyaRepository();
 
 	List<Map<String, dynamic>> _patients = <Map<String, dynamic>>[];
 	List<Map<String, dynamic>> _evidence = <Map<String, dynamic>>[];
+	List<Map<String, dynamic>> _reports = <Map<String, dynamic>>[];
 
 	Map<String, dynamic>? _selected;
 	Map<String, dynamic>? _suggestion;
 	bool _loading = false;
 	bool _loadingPatients = false;
+	bool _loadingReports = false;
 
 	@override
 	void initState() {
 		super.initState();
 		_loadPatients();
 		_loadEvidence();
+		_loadReports();
 	}
 
 	@override
@@ -38,31 +41,10 @@ class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 		super.dispose();
 	}
 
-	Map<String, dynamic> _extractData(dynamic response) {
-		if (response is Map<String, dynamic>) {
-			final dynamic data = response['data'];
-			if (data is Map<String, dynamic>) {
-				return data;
-			}
-		}
-		return <String, dynamic>{};
-	}
-
-	List<Map<String, dynamic>> _extractDataList(dynamic response) {
-		if (response is Map<String, dynamic>) {
-			final dynamic data = response['data'];
-			if (data is List) {
-				return data.whereType<Map>().map((Map item) => Map<String, dynamic>.from(item)).toList();
-			}
-		}
-		return <Map<String, dynamic>>[];
-	}
-
 	Future<void> _loadPatients() async {
 		setState(() => _loadingPatients = true);
 		try {
-			final dynamic response = await _api.get('/vaidya/patients', queryParams: <String, dynamic>{'search': _searchController.text.trim()});
-			final List<Map<String, dynamic>> fetched = _extractDataList(response);
+			final List<Map<String, dynamic>> fetched = await _repo.patients(search: _searchController.text.trim());
 			setState(() {
 				_patients = fetched;
 				if (_patients.isNotEmpty) {
@@ -86,9 +68,24 @@ class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 
 	Future<void> _loadEvidence() async {
 		try {
-			final dynamic response = await _api.get('/vaidya/evidence');
-			setState(() => _evidence = _extractDataList(response));
+			setState(() => _evidence = <Map<String, dynamic>>[]);
+			final List<Map<String, dynamic>> evidence = await _repo.evidence();
+			setState(() => _evidence = evidence);
 		} catch (_) {}
+	}
+
+	Future<void> _loadReports() async {
+		setState(() => _loadingReports = true);
+		try {
+			final List<Map<String, dynamic>> reports = await _repo.reports(limit: 10);
+			setState(() => _reports = reports);
+		} catch (_) {
+			setState(() => _reports = <Map<String, dynamic>>[]);
+		} finally {
+			if (mounted) {
+				setState(() => _loadingReports = false);
+			}
+		}
 	}
 
 	Future<void> _fetchSuggestion() async {
@@ -99,12 +96,18 @@ class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 					.map((e) => e.trim())
 					.where((e) => e.isNotEmpty)
 					.toList();
-			final dynamic response = await _api.post('/vaidya/suggest', {
-				'symptoms': symptoms,
-				'dosha': (_selected?['prakriti_type'] ?? _selected?['prakriti'] ?? 'Vata').toString(),
-				'patient_uid': (_selected?['id'] ?? '').toString(),
-			});
-			setState(() => _suggestion = _extractData(response));
+			final String patientUid = (_selected?['id'] ?? '').toString();
+			final Map<String, dynamic> suggestion = await _repo.suggest(
+				symptoms: symptoms,
+				dosha: (_selected?['prakriti_type'] ?? _selected?['prakriti'] ?? 'Vata').toString(),
+				patientUid: patientUid,
+			);
+			setState(() => _suggestion = suggestion);
+
+			if (patientUid.isNotEmpty) {
+				await _repo.consult(patientUid: patientUid, symptoms: symptoms, suggestion: suggestion);
+				await _loadReports();
+			}
 		} catch (e) {
 			if (!mounted) return;
 			ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to get suggestion: $e')));
@@ -274,6 +277,23 @@ class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 								],
 							),
 						),
+						const SizedBox(height: 12),
+						Text('Recent Consult Reports', style: Theme.of(context).textTheme.titleSmall),
+						const SizedBox(height: 6),
+						if (_loadingReports)
+							const Center(child: CircularProgressIndicator())
+						else
+							..._reports
+								.take(5)
+								.map(
+									(Map<String, dynamic> report) => Card(
+										child: ListTile(
+											title: Text('Consult ${report['consult_id'] ?? ''}'),
+											subtitle: Text((report['status'] ?? 'unknown').toString()),
+										),
+									),
+								)
+								.toList(),
 					],
 				),
 			);
@@ -283,7 +303,13 @@ class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 			appBar: AppBar(
 				title: Text(context.t('vaidya_copilot')),
 				actions: [
-					IconButton(onPressed: _loadPatients, icon: const Icon(Icons.refresh)),
+					IconButton(
+						onPressed: () async {
+							await _loadPatients();
+							await _loadReports();
+						},
+						icon: const Icon(Icons.refresh),
+					),
 				],
 			),
 			body: LayoutBuilder(

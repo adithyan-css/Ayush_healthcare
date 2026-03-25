@@ -50,6 +50,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProvider
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
     context.read<HeatmapCubit>().loadHeatmapData();
+    context.read<CommunitySymptomCubit>().loadCommunity();
   }
 
   @override
@@ -107,7 +108,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProvider
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('Report community symptoms', style: Theme.of(context).textTheme.titleMedium),
+                    Text(context.t('report_community_symptoms'), style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
@@ -143,12 +144,13 @@ class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProvider
                                 final CommunitySymptomState state = context.read<CommunitySymptomCubit>().state;
                                 if (state is CommunitySymptomSuccess) {
                                   ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(content: Text(state.message)));
+                                  context.read<CommunitySymptomCubit>().loadCommunity();
                                 } else if (state is CommunitySymptomError) {
                                   ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(content: Text(state.message)));
                                 }
                               },
                         icon: const Icon(Icons.send),
-                        label: const Text('Submit Report'),
+                        label: Text(context.t('submit_report')),
                       ),
                     ),
                   ],
@@ -169,7 +171,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProvider
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCommunitySymptomSheet,
         icon: const Icon(Icons.campaign_outlined),
-        label: const Text('Report'),
+        label: Text(context.t('submit_report')),
       ),
       body: BlocBuilder<HeatmapCubit, HeatmapState>(
         builder: (BuildContext context, HeatmapState state) {
@@ -245,6 +247,78 @@ class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProvider
                     child: Text(state.msg),
                   ),
                 ),
+              Align(
+                alignment: Alignment.topCenter,
+                child: BlocBuilder<CommunitySymptomCubit, CommunitySymptomState>(
+                  builder: (BuildContext context, CommunitySymptomState radarState) {
+                    if (radarState is! CommunitySymptomLoaded) {
+                      return const SizedBox.shrink();
+                    }
+
+                    final List<Map<String, dynamic>> topSymptoms = radarState.items.take(4).toList(growable: false);
+                    final List<Map<String, dynamic>> hotspots = radarState.hotspots.take(4).toList(growable: false);
+                    final List<Map<String, dynamic>> alerts = radarState.alerts.take(3).toList(growable: false);
+
+                    return Container(
+                      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface.withValues(alpha: 0.93),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: <BoxShadow>[
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.14), blurRadius: 8),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text(context.t('community_radar'), style: Theme.of(context).textTheme.titleSmall),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: topSymptoms
+                                .map((Map<String, dynamic> item) => Chip(
+                                      label: Text('${item['symptom'] ?? ''} (${item['count'] ?? 0})'),
+                                      visualDensity: VisualDensity.compact,
+                                    ))
+                                .toList(growable: false),
+                          ),
+                          const SizedBox(height: 6),
+                          if (hotspots.isNotEmpty)
+                            Text(
+                              hotspots
+                                  .map((Map<String, dynamic> h) => '${h['region']}: ${h['condition']} (${h['risk']})')
+                                  .join('  •  '),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          if (alerts.isNotEmpty) ...<Widget>[
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              children: alerts
+                                  .map((Map<String, dynamic> a) => Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: ((a['severity'] ?? 'low').toString().toLowerCase() == 'high')
+                                              ? Colors.red.withValues(alpha: 0.16)
+                                              : Colors.amber.withValues(alpha: 0.16),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text('${a['symptom']} ${a['severity']}'),
+                                      ))
+                                  .toList(growable: false),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Container(

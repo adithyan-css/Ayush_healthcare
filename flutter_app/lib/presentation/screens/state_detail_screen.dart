@@ -2,7 +2,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../services/api_service.dart';
+import '../../core/i18n/language_map.dart';
+import '../../data/repositories/forecast_repository.dart';
 import '../cubits/heatmap_cubit.dart';
 
 class StateDetailScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class StateDetailScreen extends StatefulWidget {
 class _StateDetailScreenState extends State<StateDetailScreen> {
   bool _xaiLoading = true;
   List<String> _xaiReasons = <String>[];
+  final ForecastRepository _forecastRepository = ForecastRepository();
 
   @override
   void initState() {
@@ -31,13 +33,12 @@ class _StateDetailScreenState extends State<StateDetailScreen> {
 
   Future<void> _loadXaiReasons() async {
     try {
-      final dynamic response = await ApiService.instance.get('/forecast/explain/${widget.stateId}');
-      final List<dynamic> reasonsRaw = (response is Map ? (response['reasons'] as List<dynamic>? ?? <dynamic>[]) : <dynamic>[]);
+      final List<String> reasons = await _forecastRepository.explain(widget.stateId);
       if (!mounted) {
         return;
       }
       setState(() {
-        _xaiReasons = reasonsRaw.map((dynamic e) => e.toString()).toList();
+        _xaiReasons = reasons;
         _xaiLoading = false;
       });
     } catch (_) {
@@ -108,7 +109,7 @@ class _StateDetailScreenState extends State<StateDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('State Detail - ${widget.stateId}')),
+      appBar: AppBar(title: Text('${context.t('state_detail')} - ${widget.stateId}')),
       body: BlocBuilder<HeatmapCubit, HeatmapState>(
         builder: (BuildContext context, HeatmapState state) {
           if (state is HeatmapError) {
@@ -153,7 +154,7 @@ class _StateDetailScreenState extends State<StateDetailScreen> {
                     ),
                     Chip(
                       label: Text(riskLevel.toUpperCase()),
-                      backgroundColor: _riskColor(riskLevel).withOpacity(0.16),
+                      backgroundColor: _riskColor(riskLevel).withValues(alpha: 0.16),
                       side: BorderSide(color: _riskColor(riskLevel)),
                     ),
                     const SizedBox(width: 8),
@@ -221,15 +222,33 @@ class _StateDetailScreenState extends State<StateDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        const Text('Why this risk level?', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(context.t('xai_reasoning_steps'), style: const TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
                         if (_xaiReasons.isEmpty)
-                          const Center(child: CircularProgressIndicator())
+                          Text(context.t('no_explanation_available'))
                         else
                           ..._xaiReasons.asMap().entries.map(
                                 (MapEntry<int, String> entry) => Padding(
                                   padding: const EdgeInsets.only(bottom: 8),
-                                  child: Text('${entry.key + 1}. ${entry.value}'),
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blueGrey.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        CircleAvatar(
+                                          radius: 12,
+                                          child: Text('${entry.key + 1}', style: const TextStyle(fontSize: 12)),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(child: Text(entry.value)),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
                       ],

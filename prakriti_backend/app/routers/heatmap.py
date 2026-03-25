@@ -70,6 +70,11 @@ async def get_districts(condition: str | None = None, season: str | None = None,
         raise HTTPException(status_code=500, detail=f'Unable to load districts: {exc}')
 
 
+@router.get('/states')
+async def get_states(condition: str | None = None, season: str | None = None, db: AsyncSession = Depends(get_db)):
+    return await get_districts(condition=condition, season=season, db=db)
+
+
 @router.get('/state/{state_id}')
 async def get_state(state_id: str, db: AsyncSession = Depends(get_db)):
     try:
@@ -97,6 +102,11 @@ async def get_trend(state_id: str, db: AsyncSession = Depends(get_db)):
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f'Unable to load state trend: {exc}')
+
+
+@router.get('/trends/{state_id}')
+async def get_trends(state_id: str, db: AsyncSession = Depends(get_db)):
+    return await get_trend(state_id=state_id, db=db)
 
 
 @router.get('/rising')

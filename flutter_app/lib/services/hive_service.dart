@@ -51,12 +51,24 @@ class HiveService {
 		await _settingsBox.put('jwt', token);
 	}
 
+	static Future<void> saveRefreshToken(String token) async {
+		await _settingsBox.put('refresh_token', token);
+	}
+
 	static String? getJwt() {
 		return _settingsBox.get('jwt') as String?;
 	}
 
+	static String? getRefreshToken() {
+		return _settingsBox.get('refresh_token') as String?;
+	}
+
 	static Future<void> clearJwt() async {
 		await _settingsBox.delete('jwt');
+	}
+
+	static Future<void> clearRefreshToken() async {
+		await _settingsBox.delete('refresh_token');
 	}
 
 	static Future<void> saveSettings(String key, dynamic value) async {

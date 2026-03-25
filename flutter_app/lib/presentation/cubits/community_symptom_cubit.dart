@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../services/api_service.dart';
+import '../../data/repositories/community_repository.dart';
 
 abstract class CommunitySymptomState {}
 
@@ -9,9 +9,15 @@ class CommunitySymptomInitial extends CommunitySymptomState {}
 class CommunitySymptomLoading extends CommunitySymptomState {}
 
 class CommunitySymptomLoaded extends CommunitySymptomState {
-	CommunitySymptomLoaded(this.items);
+	CommunitySymptomLoaded({
+		required this.items,
+		required this.hotspots,
+		required this.alerts,
+	});
 
 	final List<Map<String, dynamic>> items;
+	final List<Map<String, dynamic>> hotspots;
+	final List<Map<String, dynamic>> alerts;
 }
 
 class CommunitySymptomSuccess extends CommunitySymptomState {
@@ -29,26 +35,21 @@ class CommunitySymptomError extends CommunitySymptomState {
 class CommunitySymptomCubit extends Cubit<CommunitySymptomState> {
 	CommunitySymptomCubit() : super(CommunitySymptomInitial());
 
-	final ApiService _api = ApiService.instance;
-
-	List<Map<String, dynamic>> _extractList(dynamic response) {
-		if (response is Map<String, dynamic>) {
-			final dynamic data = response['data'];
-			if (data is List) {
-				return data
-					.whereType<Map>()
-					.map((Map item) => Map<String, dynamic>.from(item))
-					.toList(growable: false);
-			}
-		}
-		return <Map<String, dynamic>>[];
-	}
+	final CommunityRepository _repo = CommunityRepository();
 
 	Future<void> loadCommunity() async {
 		emit(CommunitySymptomLoading());
 		try {
-			final dynamic response = await _api.get('/symptoms/community');
-			emit(CommunitySymptomLoaded(_extractList(response)));
+			final List<Map<String, dynamic>> items = await _repo.community();
+			final List<Map<String, dynamic>> hotspots = await _repo.hotspots();
+			final List<Map<String, dynamic>> alerts = await _repo.alerts();
+			emit(
+				CommunitySymptomLoaded(
+					items: items,
+					hotspots: hotspots,
+					alerts: alerts,
+				),
+			);
 		} catch (e) {
 			emit(CommunitySymptomError('Unable to load community symptoms: $e'));
 		}
@@ -61,11 +62,7 @@ class CommunitySymptomCubit extends Cubit<CommunitySymptomState> {
 		}
 		emit(CommunitySymptomLoading());
 		try {
-			await _api.post('/symptoms/report', {
-				'symptoms': symptoms,
-				'latitude': latitude,
-				'longitude': longitude,
-			});
+			await _repo.reportSymptoms(symptoms: symptoms, latitude: latitude, longitude: longitude);
 			emit(CommunitySymptomSuccess('Community symptom report submitted'));
 		} catch (e) {
 			emit(CommunitySymptomError('Unable to submit symptom report: $e'));

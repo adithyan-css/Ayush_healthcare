@@ -402,30 +402,15 @@ class RecommendationService:
 
         if self.claude.is_configured():
             try:
-                claude_json = await self.claude.generate_recommendation_json(
-                    dosha=str(dosha).lower(),
-                    vata=33,
-                    pitta=33,
-                    kapha=34,
+                claude_json = await self.claude.generate_prevention_plan_json(
+                    location=location,
+                    risk_score=risk_score,
+                    dosha=dosha,
                     season=season,
-                    symptoms=[f'location:{location}', f'risk_score:{risk_score}'],
-                    history=[],
-                    free_text=(
-                        f'Generate a strict 30-day prevention plan for {location} '
-                        f'with risk score {risk_score} and dosha {dosha}. '
-                        f'Return actionable weekly structure in {language_name}.'
-                    ),
                     language_name=language_name,
-                    fallback_json={
-                        'herbs': [],
-                        'diet': {'eat': [], 'avoid': []},
-                        'yoga': [],
-                        'dinacharya': [],
-                        'prevention_plan': fallback,
-                    },
+                    fallback_plan=fallback,
                 )
-                normalized = self._normalize_output(claude_json)
-                prevention = str(normalized.get('prevention_plan', '')).strip()
+                prevention = str((claude_json or {}).get('prevention_plan', '')).strip()
                 if prevention:
                     return prevention
             except Exception:

@@ -50,7 +50,7 @@ async def generate(req: RecommendationRequest, request: Request, current_user: U
 		ai_response = await recommendation_service.generate_recommendation(dosha, vata, pitta, kapha, season, req.symptoms, history_data, free_text, language)
 		session = RecommendationSession(
 			user_id=current_user.id,
-			symptoms={'items': req.symptoms},
+			symptoms=req.symptoms,
 			season=season,
 			free_text=free_text,
 			response_json=ai_response,
@@ -143,6 +143,11 @@ async def prevention(data: dict, request: Request, current_user: User = Depends(
 		return success_response({'plan': plan}, 'Prevention plan generated')
 	except Exception as exc:
 		raise HTTPException(status_code=500, detail=f'Unable to generate prevention plan: {exc}')
+
+
+@router.post('/prevention-plan')
+async def prevention_plan(data: dict, request: Request, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+	return await prevention(data=data, request=request, current_user=current_user, db=db)
 
 
 @router.post('/arogya-report')

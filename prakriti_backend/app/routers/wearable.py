@@ -91,6 +91,11 @@ async def trend(days: int = 30, current_user: User = Depends(get_current_user), 
         raise HTTPException(status_code=500, detail=f'Unable to load HRV trend: {exc}')
 
 
+@router.get('/trends')
+async def trends(days: int = 30, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    return await trend(days=days, current_user=current_user, db=db)
+
+
 @router.get('/anomalies')
 async def anomalies(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     try:

@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:dio/dio.dart';
-import '../../services/api_service.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../../services/hive_service.dart';
 
 abstract class AuthState {}
@@ -25,29 +25,16 @@ class AuthError extends AuthState {
 class AuthCubit extends Cubit<AuthState> {
 	AuthCubit() : super(AuthInitial());
 
-	final ApiService _api = ApiService.instance;
-
-	Map<String, dynamic> _extractData(dynamic response) {
-		if (response is Map<String, dynamic>) {
-			final dynamic data = response['data'];
-			if (data is Map<String, dynamic>) {
-				return data;
-			}
-			return response;
-		}
-		return <String, dynamic>{};
-	}
+	final AuthRepository _repo = AuthRepository();
 
 	Future<void> _saveAuthSession(Map<String, dynamic> tokenData) async {
 		final String token = (tokenData['access_token'] ?? '').toString();
 		if (token.isEmpty) {
 			throw Exception('Missing access token');
 		}
-		await HiveService.saveJwt(token);
-		await _api.saveJwt(token);
+		await _repo.saveSession(tokenData);
 
-		final dynamic meResponse = await _api.get('/auth/me');
-		final Map<String, dynamic> meData = _extractData(meResponse);
+		final Map<String, dynamic> meData = await _repo.me();
 		await HiveService.saveSettings('user_data', meData);
 		emit(AuthAuthenticated(meData));
 	}
@@ -55,15 +42,14 @@ class AuthCubit extends Cubit<AuthState> {
 	Future<void> checkAuthStatus() async {
 		final jwt = HiveService.getJwt();
 		if (jwt != null && jwt.isNotEmpty) {
-			await _api.saveJwt(jwt);
+			await _repo.saveSession(<String, dynamic>{'access_token': jwt, 'refresh_token': HiveService.getRefreshToken()});
 			try {
-				final dynamic response = await _api.get('/auth/me');
-				final Map<String, dynamic> user = _extractData(response);
+				final Map<String, dynamic> user = await _repo.me();
 				await HiveService.saveSettings('user_data', user);
 				emit(AuthAuthenticated(user));
 			} catch (_) {
 				await HiveService.clearJwt();
-				await _api.clearJwt();
+				await HiveService.clearRefreshToken();
 				emit(AuthUnauthenticated());
 			}
 		} else {
@@ -74,11 +60,8 @@ class AuthCubit extends Cubit<AuthState> {
 	Future<void> signInWithEmail(String email, String password) async {
 		emit(AuthLoading());
 		try {
-			final dynamic response = await _api.post('/auth/login', {
-				'email': email,
-				'password': password,
-			});
-			await _saveAuthSession(_extractData(response));
+			final Map<String, dynamic> response = await _repo.login(email, password);
+			await _saveAuthSession(response);
 		} on DioException catch (e) {
 			if (e.type == DioExceptionType.connectionTimeout ||
 				e.type == DioExceptionType.receiveTimeout ||
@@ -99,13 +82,8 @@ class AuthCubit extends Cubit<AuthState> {
 		emit(AuthLoading());
 		try {
 			final String language = HiveService.getLanguageCode();
-			final dynamic response = await _api.post('/auth/register', {
-				'email': email,
-				'password': password,
-				'display_name': name,
-				'language': language,
-			});
-			await _saveAuthSession(_extractData(response));
+			final Map<String, dynamic> response = await _repo.register(name, email, password, language);
+			await _saveAuthSession(response);
 		} on DioException catch (e) {
 			if (e.type == DioExceptionType.connectionTimeout ||
 				e.type == DioExceptionType.receiveTimeout ||
@@ -123,8 +101,7 @@ class AuthCubit extends Cubit<AuthState> {
 	}
 
 	Future<void> signOut() async {
-		await HiveService.clearJwt();
-		await _api.clearJwt();
+		await _repo.logout();
 		await Hive.box('prakriti').clear();
 		emit(AuthUnauthenticated());
 	}
