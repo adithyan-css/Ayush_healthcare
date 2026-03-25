@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:printing/printing.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../core/i18n/language_map.dart';
+import '../../services/api_service.dart';
 import '../cubits/recommendation_cubit.dart';
 
 class RecommendationResultScreen extends StatefulWidget {
@@ -28,10 +33,25 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
     super.dispose();
   }
 
-  void _downloadReport() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.t('download_report'))),
-    );
+  Future<void> _downloadReport() async {
+    try {
+      final dynamic response = await ApiService.instance.post('/recommendations/arogya-report', <String, dynamic>{});
+      final String pdfBase64 = (response is Map<String, dynamic>
+              ? ((response['data'] is Map<String, dynamic>)
+                  ? (response['data']['pdf_base64'] ?? '').toString()
+                  : '')
+              : '');
+      if (pdfBase64.isEmpty) {
+        throw Exception('Empty PDF data');
+      }
+      final Uint8List bytes = Uint8List.fromList(base64Decode(pdfBase64));
+      await Printing.sharePdf(bytes: bytes, filename: 'arogya_report.pdf');
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Report download failed: $e')));
+    }
   }
 
   Color _timeColor(String time) {
@@ -58,7 +78,7 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
         if (state is RecommendationInitial) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
-              context.go('/symptoms');
+              context.go('/recommend/symptoms');
             }
           });
           return const Scaffold(body: SizedBox.shrink());
@@ -114,7 +134,11 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
             .toList();
 
         final String prevention =
-            payload['prevention_30day']?.toString() ?? response['prevention_30day']?.toString() ?? 'No prevention plan available.';
+          payload['prevention_plan']?.toString() ??
+          payload['prevention_30day']?.toString() ??
+          response['prevention_plan']?.toString() ??
+          response['prevention_30day']?.toString() ??
+          'No prevention plan available.';
 
         return Scaffold(
           appBar: AppBar(

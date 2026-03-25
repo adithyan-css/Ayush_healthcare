@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict
 
 
 class UserBase(BaseModel):
-    firebase_uid: str
     email: str
     display_name: str
     role: str = 'patient'

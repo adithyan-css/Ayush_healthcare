@@ -46,7 +46,7 @@ class _SymptomSelectionScreenState extends State<SymptomSelectionScreen> {
 			body: BlocListener<RecommendationCubit, RecommendationState>(
 				listener: (context, state) {
 					if (state is RecommendationLoaded) {
-						context.go('/recommendations');
+						context.go('/recommend/result');
 					}
 				},
 				child: BlocBuilder<RecommendationCubit, RecommendationState>(

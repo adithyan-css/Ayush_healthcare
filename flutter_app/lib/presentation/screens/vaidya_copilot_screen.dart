@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/i18n/language_map.dart';
 import '../../services/api_service.dart';
+import '../../services/hive_service.dart';
 
 class VaidyaCopilotScreen extends StatefulWidget {
 	const VaidyaCopilotScreen({super.key});
@@ -113,6 +115,35 @@ class _VaidyaCopilotScreenState extends State<VaidyaCopilotScreen> {
 
 	@override
 	Widget build(BuildContext context) {
+		final dynamic rawUser = HiveService.getSetting('user_data');
+		final Map<String, dynamic> user = rawUser is Map<String, dynamic> ? rawUser : <String, dynamic>{};
+		final bool isDoctor = (user['role'] ?? '').toString().toLowerCase() == 'doctor';
+		if (!isDoctor) {
+			return Scaffold(
+				appBar: AppBar(title: Text(context.t('vaidya_copilot'))),
+				body: Center(
+					child: Padding(
+						padding: const EdgeInsets.all(20),
+						child: Column(
+							mainAxisSize: MainAxisSize.min,
+							children: [
+								const Icon(Icons.lock_outline, size: 44),
+								const SizedBox(height: 12),
+								Text(context.t('vaidya_copilot'), style: Theme.of(context).textTheme.titleLarge),
+								const SizedBox(height: 8),
+								const Text('Doctor access required for this module.'),
+								const SizedBox(height: 12),
+								ElevatedButton(
+									onPressed: () => context.go('/home'),
+									child: const Text('Back to Home'),
+								),
+							],
+						),
+					),
+				),
+			);
+		}
+
 		final ColorScheme colorScheme = Theme.of(context).colorScheme;
 		final filtered = _patients
 				.where((p) => (p['display_name'] ?? '').toString().toLowerCase().contains(_searchController.text.toLowerCase()))

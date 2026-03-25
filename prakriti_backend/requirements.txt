@@ -7,7 +7,6 @@ greenlet
 pydantic
 pydantic-settings
 redis[hiredis]
-firebase-admin
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart

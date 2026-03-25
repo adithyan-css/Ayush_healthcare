@@ -26,7 +26,6 @@ def error_response(message: str, data=None):
 def serialize_user(user: User) -> dict:
 	return {
 		'id': str(user.id),
-		'firebase_uid': user.firebase_uid,
 		'email': user.email,
 		'display_name': user.display_name,
 		'role': user.role,

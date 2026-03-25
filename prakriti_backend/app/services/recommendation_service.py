@@ -390,9 +390,45 @@ class RecommendationService:
             'prevention_30day': prevention,
         }
 
-    def generate_prevention_plan(self, location: str, risk_score: int, dosha: str, season: str) -> str:
-        return (
+    async def generate_prevention_plan(self, location: str, risk_score: int, dosha: str, season: str, language: str = 'en') -> str:
+        fallback = (
             f'30-day plan for {location}: keep a {dosha}-balancing routine in {season}, '
             f'monitor weekly risk score ({risk_score}/100), maintain early sleep, daily pranayama, '
             'and fresh seasonal AYUSH diet.'
         )
+
+        language_map = {'en': 'English', 'ta': 'Tamil', 'hi': 'Hindi', 'te': 'Telugu', 'ja': 'Japanese'}
+        language_name = language_map.get((language or 'en').lower(), 'English')
+
+        if self.claude.is_configured():
+            try:
+                claude_json = await self.claude.generate_recommendation_json(
+                    dosha=str(dosha).lower(),
+                    vata=33,
+                    pitta=33,
+                    kapha=34,
+                    season=season,
+                    symptoms=[f'location:{location}', f'risk_score:{risk_score}'],
+                    history=[],
+                    free_text=(
+                        f'Generate a strict 30-day prevention plan for {location} '
+                        f'with risk score {risk_score} and dosha {dosha}. '
+                        f'Return actionable weekly structure in {language_name}.'
+                    ),
+                    language_name=language_name,
+                    fallback_json={
+                        'herbs': [],
+                        'diet': {'eat': [], 'avoid': []},
+                        'yoga': [],
+                        'dinacharya': [],
+                        'prevention_plan': fallback,
+                    },
+                )
+                normalized = self._normalize_output(claude_json)
+                prevention = str(normalized.get('prevention_plan', '')).strip()
+                if prevention:
+                    return prevention
+            except Exception:
+                pass
+
+        return fallback

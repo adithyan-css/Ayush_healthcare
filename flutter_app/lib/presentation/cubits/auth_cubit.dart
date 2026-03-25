@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:dio/dio.dart';
 import '../../services/api_service.dart';
 import '../../services/hive_service.dart';
 
@@ -70,10 +71,6 @@ class AuthCubit extends Cubit<AuthState> {
 		}
 	}
 
-	Future<void> signInWithGoogle() async {
-		emit(AuthError('Google sign-in is not configured in backend. Use email login.'));
-	}
-
 	Future<void> signInWithEmail(String email, String password) async {
 		emit(AuthLoading());
 		try {
@@ -82,6 +79,16 @@ class AuthCubit extends Cubit<AuthState> {
 				'password': password,
 			});
 			await _saveAuthSession(_extractData(response));
+		} on DioException catch (e) {
+			if (e.type == DioExceptionType.connectionTimeout ||
+				e.type == DioExceptionType.receiveTimeout ||
+				e.type == DioExceptionType.sendTimeout ||
+				e.type == DioExceptionType.connectionError) {
+				emit(AuthError('Email sign-in failed: Cannot reach server. Start backend and verify API URL.'));
+			} else {
+				emit(AuthError('Email sign-in failed: ${e.message ?? e.toString()}'));
+			}
+			emit(AuthUnauthenticated());
 		} catch (e) {
 			emit(AuthError('Email sign-in failed: $e'));
 			emit(AuthUnauthenticated());
@@ -99,6 +106,16 @@ class AuthCubit extends Cubit<AuthState> {
 				'language': language,
 			});
 			await _saveAuthSession(_extractData(response));
+		} on DioException catch (e) {
+			if (e.type == DioExceptionType.connectionTimeout ||
+				e.type == DioExceptionType.receiveTimeout ||
+				e.type == DioExceptionType.sendTimeout ||
+				e.type == DioExceptionType.connectionError) {
+				emit(AuthError('Registration failed: Cannot reach server. Start backend and verify API URL.'));
+			} else {
+				emit(AuthError('Registration failed: ${e.message ?? e.toString()}'));
+			}
+			emit(AuthUnauthenticated());
 		} catch (e) {
 			emit(AuthError('Registration failed: $e'));
 			emit(AuthUnauthenticated());

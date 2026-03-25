@@ -10,10 +10,12 @@ from app.schemas.schemas import RecommendationRequest
 from app.dependencies import get_current_user, success_response, resolve_language
 from app.services.recommendation_service import RecommendationService
 from app.services.weather_service import WeatherService
+from app.services.pdf_service import PDFService
 
 router = APIRouter()
 recommendation_service = RecommendationService()
 ws = WeatherService()
+pdf_service = PDFService()
 
 
 @router.post('/generate')
@@ -120,7 +122,7 @@ async def delete_rec(id: str, current_user: User = Depends(get_current_user), db
 
 
 @router.post('/prevention')
-async def prevention(data: dict, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def prevention(data: dict, request: Request, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
 	location = data.get('location', 'India')
 	risk_score = int(data.get('risk_score', 50))
 	age_group = data.get('age_group', 'adult')
@@ -130,7 +132,53 @@ async def prevention(data: dict, current_user: User = Depends(get_current_user),
 		profile = profile_res.scalars().first()
 		if profile:
 			dosha = profile.dominant_dosha
-		plan = recommendation_service.generate_prevention_plan(location=location, risk_score=risk_score, dosha=dosha, season=ws.get_current_season())
+		language = resolve_language(request, current_user.language)
+		plan = await recommendation_service.generate_prevention_plan(
+			location=location,
+			risk_score=risk_score,
+			dosha=dosha,
+			season=ws.get_current_season(),
+			language=language,
+		)
 		return success_response({'plan': plan}, 'Prevention plan generated')
 	except Exception as exc:
 		raise HTTPException(status_code=500, detail=f'Unable to generate prevention plan: {exc}')
+
+
+@router.post('/arogya-report')
+async def arogya_report(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+	try:
+		profile = await db.scalar(
+			select(PrakritiProfile)
+			.where(PrakritiProfile.user_id == current_user.id)
+			.order_by(PrakritiProfile.completed_at.desc())
+		)
+		history_rows = (
+			await db.scalars(
+				select(RecommendationSession)
+				.where(RecommendationSession.user_id == current_user.id)
+				.order_by(RecommendationSession.created_at.desc())
+				.limit(10)
+			)
+		).all()
+
+		history_payload = [
+			{
+				'date': str(row.created_at.date()) if row.created_at else '',
+				'symptoms': row.symptoms,
+				'response': row.response_json,
+			}
+			for row in history_rows
+		]
+
+		dosha = profile.dominant_dosha if profile else 'vata'
+		risk = float(profile.risk_score) if profile else 50.0
+		pdf_base64 = pdf_service.generate_arogya_report(
+			user_name=current_user.display_name,
+			dosha=dosha,
+			history=history_payload,
+			risk_score=risk,
+		)
+		return success_response({'pdf_base64': pdf_base64}, 'Arogya report generated')
+	except Exception as exc:
+		raise HTTPException(status_code=500, detail=f'Unable to generate Arogya report: {exc}')

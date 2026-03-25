@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/i18n/language_map.dart';
+import '../cubits/community_symptom_cubit.dart';
 import '../cubits/heatmap_cubit.dart';
 
 class HeatmapScreen extends StatefulWidget {
@@ -16,6 +17,17 @@ class HeatmapScreen extends StatefulWidget {
 
 class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
+
+  static const List<String> _communitySymptoms = <String>[
+    'Fever',
+    'Cough',
+    'Fatigue',
+    'Acidity',
+    'Body Ache',
+    'Skin Rash',
+    'Insomnia',
+    'Headache',
+  ];
 
   String _selectedCondition = 'All';
   String _selectedSeason = 'All';
@@ -80,11 +92,85 @@ class _HeatmapScreenState extends State<HeatmapScreen> with SingleTickerProvider
     }).toList(growable: false);
   }
 
+  Future<void> _openCommunitySymptomSheet() async {
+    final Set<String> selected = <String>{};
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('Report community symptoms', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _communitySymptoms.map((String symptom) {
+                        return FilterChip(
+                          label: Text(symptom),
+                          selected: selected.contains(symptom),
+                          onSelected: (bool value) {
+                            setModalState(() {
+                              if (value) {
+                                selected.add(symptom);
+                              } else {
+                                selected.remove(symptom);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(growable: false),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: selected.isEmpty
+                            ? null
+                            : () async {
+                                await context.read<CommunitySymptomCubit>().reportSymptoms(selected.toList(growable: false));
+                                if (!mounted) {
+                                  return;
+                                }
+                                Navigator.of(context).pop();
+                                final CommunitySymptomState state = context.read<CommunitySymptomCubit>().state;
+                                if (state is CommunitySymptomSuccess) {
+                                  ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(content: Text(state.message)));
+                                } else if (state is CommunitySymptomError) {
+                                  ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(content: Text(state.message)));
+                                }
+                              },
+                        icon: const Icon(Icons.send),
+                        label: const Text('Submit Report'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
 			appBar: AppBar(title: Text(context.t('disease_heatmap'))),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openCommunitySymptomSheet,
+        icon: const Icon(Icons.campaign_outlined),
+        label: const Text('Report'),
+      ),
       body: BlocBuilder<HeatmapCubit, HeatmapState>(
         builder: (BuildContext context, HeatmapState state) {
           if (state is HeatmapLoaded) {

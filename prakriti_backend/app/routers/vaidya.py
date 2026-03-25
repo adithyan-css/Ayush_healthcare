@@ -7,6 +7,7 @@ from app.dependencies import get_current_user, success_response, serialize_user,
 from app.models.prakriti import PrakritiProfile
 from app.models.recommendation import RecommendationSession
 from app.models.user import User
+from app.models.vaidya import VaidyaConsult
 from app.services.recommendation_service import RecommendationService
 
 router = APIRouter()
@@ -121,15 +122,57 @@ async def interactions(data: dict):
 
 
 @router.post('/consult')
-async def consult(data: dict, current_user: User = Depends(get_current_user)):
+async def consult(data: dict, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     if current_user.role != 'doctor':
         raise HTTPException(status_code=403, detail='Doctor access only')
-    return success_response({'status': 'saved', 'consult_id': f"consult_{data.get('patient_uid', 'unknown')}"}, 'Consult saved')
+
+    patient_uid = str(data.get('patient_uid', '')).strip()
+    symptoms_raw = data.get('symptoms', [])
+    symptoms = [str(item).strip() for item in symptoms_raw if str(item).strip()] if isinstance(symptoms_raw, list) else []
+    suggestion = data.get('suggestion') if isinstance(data.get('suggestion'), dict) else None
+
+    if not patient_uid:
+        raise HTTPException(status_code=400, detail='patient_uid is required')
+
+    try:
+        patient_id = uuid.UUID(patient_uid)
+    except ValueError:
+        raise HTTPException(status_code=400, detail='Invalid patient id')
+
+    patient = await db.scalar(select(User).where(User.id == patient_id))
+    if not patient:
+        raise HTTPException(status_code=404, detail='Patient not found')
+
+    consult_row = VaidyaConsult(
+        doctor_id=current_user.id,
+        patient_id=patient_id,
+        symptoms=symptoms,
+        suggestion_json=suggestion,
+        status='suggested',
+    )
+    db.add(consult_row)
+    await db.commit()
+    await db.refresh(consult_row)
+    return success_response({'status': 'saved', 'consult_id': str(consult_row.id)}, 'Consult saved')
 
 
 @router.patch('/outcome/{consult_id}')
-async def outcome(consult_id: str, data: dict, current_user: User = Depends(get_current_user)):
+async def outcome(consult_id: str, data: dict, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     if current_user.role != 'doctor':
         raise HTTPException(status_code=403, detail='Doctor access only')
-    return success_response({'status': 'updated', 'consult_id': consult_id, 'outcome': data}, 'Consult outcome updated')
+
+    try:
+        consult_uuid = uuid.UUID(consult_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail='Invalid consult id')
+
+    consult_row = await db.scalar(select(VaidyaConsult).where(VaidyaConsult.id == consult_uuid))
+    if not consult_row:
+        raise HTTPException(status_code=404, detail='Consult not found')
+
+    consult_row.outcome_json = data if isinstance(data, dict) else {'outcome': str(data)}
+    consult_row.status = 'completed'
+    await db.commit()
+    await db.refresh(consult_row)
+    return success_response({'status': 'updated', 'consult_id': consult_id, 'outcome': consult_row.outcome_json}, 'Consult outcome updated')
 

@@ -4,10 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
-// import 'package:firebase_core/firebase_core.dart';
 
 import 'core/theme.dart';
 import 'presentation/cubits/auth_cubit.dart';
+import 'presentation/cubits/community_symptom_cubit.dart';
 import 'presentation/cubits/forecast_cubit.dart';
 import 'presentation/cubits/heatmap_cubit.dart';
 import 'presentation/cubits/language_cubit.dart';
@@ -32,7 +32,6 @@ import 'presentation/screens/vaidya_copilot_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp();
 
   await Hive.initFlutter();
   await Hive.openBox('prakriti');
@@ -68,7 +67,7 @@ class PrakritiApp extends StatelessWidget {
         }
 
         if (hasJwt && path == '/home' && Hive.box('prakriti').isEmpty) {
-          return '/quiz';
+          return '/prakriti/quiz';
         }
 
         return null;
@@ -77,10 +76,13 @@ class PrakritiApp extends StatelessWidget {
         GoRoute(path: '/', builder: (BuildContext context, GoRouterState state) => const SplashScreen()),
         GoRoute(path: '/login', builder: (BuildContext context, GoRouterState state) => const LoginScreen()),
         GoRoute(path: '/register', builder: (BuildContext context, GoRouterState state) => const RegisterScreen()),
+        GoRoute(path: '/prakriti/quiz', builder: (BuildContext context, GoRouterState state) => const PrakritiQuizScreen()),
         GoRoute(path: '/quiz', builder: (BuildContext context, GoRouterState state) => const PrakritiQuizScreen()),
         GoRoute(path: '/quiz-result', builder: (BuildContext context, GoRouterState state) => const PrakritiResultScreen()),
         GoRoute(path: '/home', builder: (BuildContext context, GoRouterState state) => const HomeScreen()),
+        GoRoute(path: '/recommend/symptoms', builder: (BuildContext context, GoRouterState state) => const SymptomSelectionScreen()),
         GoRoute(path: '/symptoms', builder: (BuildContext context, GoRouterState state) => const SymptomSelectionScreen()),
+        GoRoute(path: '/recommend/result', builder: (BuildContext context, GoRouterState state) => const RecommendationResultScreen()),
         GoRoute(path: '/recommendations', builder: (BuildContext context, GoRouterState state) => const RecommendationResultScreen()),
         GoRoute(path: '/heatmap', builder: (BuildContext context, GoRouterState state) => const HeatmapScreen()),
         GoRoute(
@@ -97,6 +99,7 @@ class PrakritiApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: <BlocProvider<dynamic>>[
         BlocProvider<AuthCubit>(create: (_) => AuthCubit()),
+        BlocProvider<CommunitySymptomCubit>(create: (_) => CommunitySymptomCubit()),
         BlocProvider<LanguageCubit>(create: (_) => LanguageCubit()..loadSavedLanguage()),
         BlocProvider<PrakritiCubit>(create: (_) => PrakritiCubit()),
         BlocProvider<RecommendationCubit>(create: (_) => RecommendationCubit()),

@@ -52,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen> {
 			if (HiveService.hasPrakritiProfile()) {
 				context.go('/home');
 			} else {
-				context.go('/quiz');
+				context.go('/prakriti/quiz');
 			}
 		} else if (_lastState is AuthUnauthenticated) {
 			context.go('/login');

@@ -224,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
               children: <Widget>[
-                _ActionTile(title: context.t('get_recommendations'), icon: Icons.medical_services, color: colorScheme.error, onTap: () => context.go('/symptoms')),
+        				_ActionTile(title: context.t('get_recommendations'), icon: Icons.medical_services, color: colorScheme.error, onTap: () => context.go('/recommend/symptoms')),
                 _ActionTile(title: context.t('disease_heatmap'), icon: Icons.map, color: colorScheme.primary, onTap: () => context.go('/heatmap')),
                 _ActionTile(title: context.t('forecast'), icon: Icons.query_stats, color: colorScheme.tertiary, onTap: () => context.go('/forecast')),
                 _ActionTile(title: context.t('nadi_monitor'), icon: Icons.favorite, color: colorScheme.secondary, onTap: () => context.go('/nadi')),

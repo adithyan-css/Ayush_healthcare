@@ -3,12 +3,17 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'hive_service.dart';
 
 class ApiService {
-  static const String _apiBaseUrl = String.fromEnvironment(
+  static const String _compileTimeApiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'http://10.0.2.2:8000/api/v1',
   );
 
   ApiService._internal() {
+    final String? savedBaseUrl = HiveService.getSetting('api_base_url') as String?;
+    _dio.options.baseUrl = (savedBaseUrl != null && savedBaseUrl.trim().isNotEmpty)
+        ? savedBaseUrl.trim()
+        : _compileTimeApiBaseUrl;
+
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -34,13 +39,22 @@ class ApiService {
 
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: _apiBaseUrl,
+      baseUrl: _compileTimeApiBaseUrl,
       connectTimeout: const Duration(seconds: 20),
       receiveTimeout: const Duration(seconds: 20),
       sendTimeout: const Duration(seconds: 20),
       headers: {'Content-Type': 'application/json'},
     ),
   );
+
+  Future<void> updateBaseUrl(String baseUrl) async {
+    final String normalized = baseUrl.trim();
+    if (normalized.isEmpty) {
+      return;
+    }
+    _dio.options.baseUrl = normalized;
+    await HiveService.saveSettings('api_base_url', normalized);
+  }
 
   Future<void> saveJwt(String token) async {
     await _secureStorage.write(key: 'jwt', value: token);

@@ -17,6 +17,7 @@ class Settings(BaseSettings):
 	TWITTER_BEARER_TOKEN: str = ''
 	ENVIRONMENT: str = 'development'
 	CORS_ORIGINS: str = 'http://localhost:3000'
+	DOCTOR_EMAILS: str = ''
 
 	@property
 	def JWT_SECRET(self) -> str:
@@ -39,5 +40,9 @@ class Settings(BaseSettings):
 	@property
 	def cors_origins_list(self) -> list[str]:
 		return [origin.strip() for origin in self.CORS_ORIGINS.split(',') if origin.strip()]
+
+	@property
+	def doctor_emails_set(self) -> set[str]:
+		return {email.strip().lower() for email in self.DOCTOR_EMAILS.split(',') if email.strip()}
 
 settings = Settings()

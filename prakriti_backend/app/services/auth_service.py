@@ -1,5 +1,4 @@
 import uuid
-import importlib
 from datetime import datetime, timedelta
 
 import bcrypt
@@ -36,22 +35,5 @@ class AuthService:
         )
         return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
-    def generate_local_firebase_uid(self) -> str:
+    def generate_local_identity(self) -> str:
         return f'local_{uuid.uuid4().hex}'
-
-    def verify_firebase_token(self, id_token: str) -> dict:
-        if not id_token:
-            raise ValueError('Missing Firebase ID token')
-        try:
-            firebase_admin = importlib.import_module('firebase_admin')
-            firebase_auth = importlib.import_module('firebase_admin.auth')
-            if not getattr(firebase_admin, '_apps', None):
-                firebase_admin.initialize_app()
-            decoded = firebase_auth.verify_id_token(id_token)
-            return {
-                'uid': str(decoded.get('uid') or ''),
-                'email': str(decoded.get('email') or ''),
-                'name': str(decoded.get('name') or decoded.get('email') or ''),
-            }
-        except Exception as exc:
-            raise ValueError(f'Invalid Firebase token: {exc}')

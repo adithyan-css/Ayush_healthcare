@@ -33,7 +33,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 			body: BlocListener<AuthCubit, AuthState>(
 				listener: (context, state) {
 					if (state is AuthAuthenticated) {
-						context.go('/quiz');
+						context.go('/prakriti/quiz');
 					}
 					if (state is AuthError) {
 						ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));

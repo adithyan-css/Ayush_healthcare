@@ -43,7 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) {
         return;
       }
-      context.go('/quiz');
+      context.go('/prakriti/quiz');
     } catch (_) {
       if (!mounted) {
         return;

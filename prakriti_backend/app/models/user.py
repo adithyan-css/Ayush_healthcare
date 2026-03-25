@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 	from app.models.recommendation import RecommendationSession
 	from app.models.hrv import HrvReading
 	from app.models.symptom import SymptomReport
+	from app.models.vaidya import VaidyaConsult
 
 
 class User(Base):
@@ -27,3 +28,15 @@ class User(Base):
 	sessions: Mapped[List['RecommendationSession']] = relationship('RecommendationSession', back_populates='user', cascade='all, delete-orphan')
 	hrv_readings: Mapped[List['HrvReading']] = relationship('HrvReading', back_populates='user', cascade='all, delete-orphan')
 	symptom_reports: Mapped[List['SymptomReport']] = relationship('SymptomReport', back_populates='user', cascade='all, delete-orphan')
+	doctor_consults: Mapped[List['VaidyaConsult']] = relationship(
+		'VaidyaConsult',
+		foreign_keys='VaidyaConsult.doctor_id',
+		back_populates='doctor',
+		cascade='all, delete-orphan',
+	)
+	patient_consults: Mapped[List['VaidyaConsult']] = relationship(
+		'VaidyaConsult',
+		foreign_keys='VaidyaConsult.patient_id',
+		back_populates='patient',
+		cascade='all, delete-orphan',
+	)

@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
 						if (HiveService.hasPrakritiProfile()) {
 							context.go('/home');
 						} else {
-							context.go('/quiz');
+							context.go('/prakriti/quiz');
 						}
 					}
 					if (state is AuthError) {
@@ -111,14 +111,6 @@ class _LoginScreenState extends State<LoginScreen> {
 																			}
 																		},
 																		child: Text(context.t('sign_in')),
-																	),
-																	const SizedBox(height: 8),
-																	OutlinedButton.icon(
-																		onPressed: () {
-																			context.read<AuthCubit>().signInWithGoogle();
-																		},
-																		icon: const Icon(Icons.login),
-																		label: Text(context.t('google_sign_in')),
 																	),
 																	const SizedBox(height: 8),
 																	TextButton(

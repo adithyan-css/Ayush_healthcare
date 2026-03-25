@@ -4,6 +4,7 @@ from .recommendation import RecommendationSession
 from .district import DistrictRisk
 from .hrv import HrvReading
 from .symptom import SymptomReport
+from .vaidya import VaidyaConsult
 
 __all__ = [
 	'User',
@@ -12,4 +13,5 @@ __all__ = [
 	'DistrictRisk',
 	'HrvReading',
 	'SymptomReport',
+	'VaidyaConsult',
 ]
